@@ -27,6 +27,9 @@ node_modules/
 *.log
 logs/
 
+# --- 비용 트래커 캐시 (일일 누적 등) ---
+.cache/
+
 # --- OS ---
 .DS_Store
 Thumbs.db

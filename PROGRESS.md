@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-22 |
-| **전체 진행률** | **17.8%** (8/45 항목 완료) |
-| **현재 Phase** | Phase 1 완료 → **Phase 2 진입 대기** |
+| **전체 진행률** | **19.6%** (9/46 항목 완료) |
+| **현재 Phase** | Phase 2 진행 중 (코어 인프라 1건 완료) |
 
 ---
 
@@ -26,6 +26,7 @@
 
 ## Phase 2: 9 Agents + Orchestration ⬜
 
+- [x] 비용 안전장치 (cost_tracker + 예산 enforcement + dry-run 모드) _(2026-05-22)_
 - [ ] Trend Scout system prompt 작성
 - [ ] Audience Analyst system prompt 작성
 - [ ] Strategy Planner system prompt 작성
@@ -94,6 +95,7 @@
 | 2026-05-22 | **인터랙티브 템플릿 5종**: Quiz, Calculator, Scenario Sim, Compare Slider, Checklist | 플러스탭 콘텐츠 다양성 확보 |
 | 2026-05-22 | **3-Model Judge Panel**: Gemini 2.5 Pro + GPT-5 + Claude Opus 4.7 | 다중 LLM 교차 평가로 단일 모델 편향 회피 |
 | 2026-05-22 | **카테고리 입력**: 자유 입력 + 프리셋 4종 (맛집/AI트렌드/안전/문화) | 데모 안정성 + 자유도 양립 |
+| 2026-05-22 | **비용 안전장치 도입**: 월 $15 / 일 $2 / run $0.50 / run당 30콜, `LLMBudgetExceeded` 즉시 차단, `SAFETY_MODE=dry_run` 무비용 디버깅 | 대회/데모 중 토론 폭주로 인한 과금 사고 방지 |
 
 ---
 

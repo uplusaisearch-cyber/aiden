@@ -1,5 +1,10 @@
-"""핵심 인프라 모듈 (설정 / LLM 클라이언트 / 베이스 에이전트)."""
+"""핵심 인프라 모듈 (설정 / LLM 클라이언트 / 베이스 에이전트 / 비용 트래커)."""
 
+from backend.core.cost_tracker import (
+    CostTracker,
+    LLMBudgetExceeded,
+    get_cost_tracker,
+)
 from backend.core.settings import (
     Settings,
     get_settings,
@@ -16,4 +21,7 @@ __all__ = [
     "load_platform_config",
     "load_agents_config",
     "load_deployment_config",
+    "CostTracker",
+    "LLMBudgetExceeded",
+    "get_cost_tracker",
 ]

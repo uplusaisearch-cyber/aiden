@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", description="로깅 레벨")
     default_llm_provider: str = Field("gemini", description="기본 LLM 제공자")
 
+    # --- 비용 안전장치 (0 이하면 해당 검사 비활성) ---
+    monthly_budget_usd: float = Field(15.0, description="월간 LLM 비용 한도 (USD)")
+    daily_budget_usd: float = Field(2.0, description="일일 LLM 비용 한도 (USD)")
+    per_run_budget_usd: float = Field(0.50, description="단일 run 비용 한도 (USD)")
+    max_llm_calls_per_run: int = Field(30, description="단일 run 최대 LLM 호출 수")
+    # dry_run = 실제 호출 없이 예상 비용만 출력, development/production = 정상 호출
+    safety_mode: str = Field("development", description="안전 모드: dry_run | development | production")
+
     model_config = SettingsConfigDict(
         env_file=str(PROJECT_ROOT / ".env"),
         env_file_encoding="utf-8",

@@ -16,9 +16,24 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from backend.core.cost_tracker import LLMBudgetExceeded, get_cost_tracker
 from backend.core.settings import get_settings, load_agents_config
 
 logger = logging.getLogger(__name__)
+
+
+# =====================================================================
+# Dry-run: 실제 호출 없이 예상 비용만 산정
+# =====================================================================
+def _estimate_dry_run_tokens(prompt: str, system: str) -> tuple[int, int]:
+    """매우 거친 토큰 추정 (한국어 ≈ 1 token / 2 chars 기준).
+
+    정확도보다는 ‘대략적인 자릿수’ 가 중요합니다.
+    """
+    in_chars = len(prompt or "") + len(system or "")
+    in_tokens = max(50, in_chars // 2)
+    out_tokens = 500  # 에이전트 평균 JSON 응답 가정
+    return in_tokens, out_tokens
 
 
 # =====================================================================
@@ -209,6 +224,7 @@ def call_llm(
     system_instruction: str = "",
     grounding: bool = False,
     max_retries: int = 3,
+    run_id: str | None = None,
 ) -> LLMResponse:
     """LLM 호출 단일 진입점.
 
@@ -219,11 +235,49 @@ def call_llm(
         system_instruction: 시스템 프롬프트 (markdown 파일 내용 등).
         grounding: True 면 web search/grounding 활성화 (Gemini 만 지원).
         max_retries: 재시도 횟수 (지수 백오프).
+        run_id: 단일 Topic Newsroom 실행을 식별하는 문자열. CostTracker 가 이
+            값을 기준으로 run 단위 호출수/비용 한도를 검사합니다. None 이면
+            run 단위 검사는 생략됩니다 (일일/월간 검사는 항상 적용).
 
     Returns:
         LLMResponse — content / parsed(JSON) / 토큰 / 비용 / 응답시간.
+
+    Raises:
+        LLMBudgetExceeded: 일일/월간/run 예산 초과.
+        RuntimeError: 재시도 모두 실패 시.
     """
+    settings = get_settings()
+    safety_mode = (settings.safety_mode or "development").lower()
     provider, model_id = _resolve_model(model_alias)
+
+    # ------------------------------------------------------------------
+    # Dry-run: 실제 호출 X, 예상 비용만 출력
+    # ------------------------------------------------------------------
+    if safety_mode == "dry_run":
+        in_tok, out_tok = _estimate_dry_run_tokens(prompt, system_instruction)
+        cost = estimate_cost(model_id, in_tok, out_tok)
+        payload: dict[str, Any] = {
+            "_dry_run": True,
+            "model_alias": model_alias,
+            "model_id": model_id,
+            "estimated_tokens_in": in_tok,
+            "estimated_tokens_out": out_tok,
+            "estimated_cost_usd": round(cost, 6),
+        }
+        content = json.dumps(payload, ensure_ascii=False)
+        logger.info(
+            "[dry_run] model=%s tokens≈%d/%d est_cost≈$%.5f (실제 호출 스킵)",
+            model_id, in_tok, out_tok, cost,
+        )
+        return LLMResponse(
+            content=content,
+            parsed=payload,
+            model_id=model_id,
+            duration_ms=0,
+            prompt_tokens=in_tok,
+            completion_tokens=out_tok,
+            estimated_cost_usd=cost,
+        )
 
     if grounding and provider != "gemini":
         logger.warning(
@@ -231,6 +285,12 @@ def call_llm(
             "provider=%s 에서는 무시됩니다.",
             provider,
         )
+
+    # ------------------------------------------------------------------
+    # 예산 사전 검사 (초과 시 LLMBudgetExceeded)
+    # ------------------------------------------------------------------
+    tracker = get_cost_tracker()
+    tracker.precheck(run_id=run_id)
 
     last_error: Exception | None = None
     for attempt in range(max_retries):
@@ -271,6 +331,9 @@ def call_llm(
                 "LLM call: provider=%s model=%s duration=%dms tokens=%d/%d cost=$%.4f",
                 provider, model_id, duration_ms, p_tok, c_tok, cost,
             )
+
+            # 성공한 호출만 누적
+            tracker.record(cost, run_id=run_id)
 
             return LLMResponse(
                 content=content,

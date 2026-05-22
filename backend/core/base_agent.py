@@ -84,11 +84,23 @@ class Agent:
     # ------------------------------------------------------------------
     # 실행
     # ------------------------------------------------------------------
-    def run(self, input_data: dict[str, Any], *, max_json_retries: int = 2) -> dict[str, Any]:
+    def run(
+        self,
+        input_data: dict[str, Any],
+        *,
+        run_id: str | None = None,
+        max_json_retries: int = 2,
+    ) -> dict[str, Any]:
         """에이전트 실행.
 
         input_data 를 JSON 으로 직렬화해서 user prompt 로 전달합니다.
         응답이 JSON 파싱에 실패하면 max_json_retries 만큼 재시도합니다.
+
+        Args:
+            input_data: 에이전트에 넘길 데이터 (JSON 직렬화 가능해야 함).
+            run_id: 단일 Topic Newsroom 실행 식별자. CostTracker 가 이 값으로
+                run 단위 비용/호출수 한도를 검사합니다.
+            max_json_retries: JSON 파싱 실패 시 재시도 횟수.
 
         Returns:
             파싱된 dict 응답.
@@ -103,6 +115,7 @@ class Agent:
                 model_alias=self.model_alias,
                 system_instruction=self._system_prompt,
                 grounding=self.grounding,
+                run_id=run_id,
             )
             last_response = response
 
