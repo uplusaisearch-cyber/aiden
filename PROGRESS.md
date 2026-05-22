@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-22 |
-| **전체 진행률** | **23.9%** (11/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (코어 인프라 + 템플릿 확정) |
+| **전체 진행률** | **34.8%** (16/46 항목 완료) |
+| **현재 Phase** | Phase 2 진행 중 (묶음 1 / 콘텐츠 품질 라인 완료) |
 
 ---
 
@@ -30,11 +30,11 @@
 - [ ] Trend Scout system prompt 작성
 - [ ] Audience Analyst system prompt 작성
 - [ ] Strategy Planner system prompt 작성
-- [ ] Writer system prompt 작성
-- [ ] Fact-Checker system prompt 작성
-- [ ] Devil's Advocate system prompt 작성
-- [ ] Editor-in-Chief system prompt 작성
-- [ ] Format Architect system prompt 작성
+- [x] Writer system prompt 작성 _(2026-05-22)_
+- [x] Fact-Checker system prompt 작성 _(2026-05-22)_
+- [x] Devil's Advocate system prompt 작성 _(2026-05-22)_
+- [x] Editor-in-Chief system prompt 작성 _(2026-05-22)_
+- [x] Format Architect system prompt 작성 _(2026-05-22)_
 - [ ] HTML Builder system prompt 작성
 - [x] 플러스탭 HTML 샘플 분석 → templates/plustab_structure.md 채우기 _(2026-05-22)_
 - [x] type_a.html, type_b.html 템플릿 완성 _(2026-05-22)_
@@ -97,11 +97,19 @@
 | 2026-05-22 | **카테고리 입력**: 자유 입력 + 프리셋 4종 (맛집/AI트렌드/안전/문화) | 데모 안정성 + 자유도 양립 |
 | 2026-05-22 | **비용 안전장치 도입**: 월 $15 / 일 $2 / run $0.50 / run당 30콜, `LLMBudgetExceeded` 즉시 차단, `SAFETY_MODE=dry_run` 무비용 디버깅 | 대회/데모 중 토론 폭주로 인한 과금 사고 방지 |
 | 2026-05-22 | **플러스탭 디자인 토큰 실측 확정**: `primary=#ff2e98`, `body=#181a1b`, `sub=#66707a`, `sub2=#525960`, `card-bg=#f9fafb`, `border-light=#e7ebee`. 템플릿 변수 치환은 단순 `str.replace` 만 사용 (Jinja/Mustache 루프 금지) | 실제 샘플 HTML 분석으로 추정값 폐기. 단순 치환 방침은 비개발자도 템플릿 수정 가능하게 하기 위함 |
+| 2026-05-22 | **Devil's Advocate 라운드별 차등**: 비판 개수 5/3/1 + threshold 7/6/5 | 라운드 진행될수록 발산→수렴→결정타. 4개·6개 같은 가변 개수 허용 시 LLM 이 안정적이지 못해 명시적 고정 |
+| 2026-05-22 | **Writer 톤 참조**: 외부 파일(`docs/samples/content_voice_examples.md`) `{{TONE_REFERENCE}}` placeholder 로 주입 | 톤 가이드를 system prompt 에 인라인하면 비개발자 수정이 불편. 별도 파일로 분리하여 텍스트 편집만으로 톤 튜닝 가능 |
+| 2026-05-22 | **Editor 강제 종료**(iter 3 + DA fail): `approved` + `known_weaknesses` 명시 | 무한 루프 방지. 약점을 숨기지 않고 발표/심사 단계의 투명성 카드로 활용 |
+| 2026-05-22 | **Format Architect placeholder 는 `render_zone=outside_comment` 강제** (HTML 주석 내부 치환 방지) | type_a/b.html 의 헤더 주석에도 `{{VAR}}` 가 등장하므로, 주석 내부에서 치환되면 디버깅 혼란 발생 |
+| 2026-05-22 | **묶음 1→2 핸드오프 TODO 는 `docs/NEXT_BUNDLE_NOTES.md` 참조** | 묶음 1 진행 중 발생한 묶음 2 작업 요건(HTML Builder render_zone 룰, base_agent TONE_REFERENCE 치환, 오케스트레이터 설계)을 한 곳에 모아 컨텍스트 이전 손실 방지 |
 
 ---
 
 ## ⚠️ 이슈 / 리스크
 
-> 현재 비어 있음. 발견 시 `발견일 · 항목 · 영향도(낮음/중간/높음) · 대응안` 형식으로 추가.
+> 발견 시 `발견일 · 항목 · 영향도(낮음/중간/높음) · 대응안` 형식으로 추가.
 
-_(없음)_
+- **2026-05-22 · HTML Builder placeholder 주석 내부 치환 위험 · 중간**:
+  `type_a.html` / `type_b.html` 헤더 주석에도 변수명 문서화 목적의 `{{VAR}}` 가 등장함.
+  HTML Builder 구현 시 Format Architect 가 명시한 `placeholder_locations.render_zone == "outside_comment"` 인 위치만 치환하도록 강제 필요.
+  대응안: 묶음 2 에서 09_html_builder.md 작성 시 명시 + base_agent 치환 로직에 안전장치 추가 (`docs/NEXT_BUNDLE_NOTES.md` §1 참조).
