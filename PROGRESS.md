@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-22 |
-| **전체 진행률** | **19.6%** (9/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (코어 인프라 1건 완료) |
+| **전체 진행률** | **23.9%** (11/46 항목 완료) |
+| **현재 Phase** | Phase 2 진행 중 (코어 인프라 + 템플릿 확정) |
 
 ---
 
@@ -36,8 +36,8 @@
 - [ ] Editor-in-Chief system prompt 작성
 - [ ] Format Architect system prompt 작성
 - [ ] HTML Builder system prompt 작성
-- [ ] 플러스탭 HTML 샘플 분석 → templates/plustab_structure.md 채우기
-- [ ] type_a.html, type_b.html 템플릿 완성
+- [x] 플러스탭 HTML 샘플 분석 → templates/plustab_structure.md 채우기 _(2026-05-22)_
+- [x] type_a.html, type_b.html 템플릿 완성 _(2026-05-22)_
 - [ ] Topic Newsroom 오케스트레이터 (Stage 1)
 - [ ] Content Newsroom 오케스트레이터 (Stage 2, max 3 iter)
 - [ ] Game-ifier 오케스트레이터 (Stage 3)
@@ -96,6 +96,7 @@
 | 2026-05-22 | **3-Model Judge Panel**: Gemini 2.5 Pro + GPT-5 + Claude Opus 4.7 | 다중 LLM 교차 평가로 단일 모델 편향 회피 |
 | 2026-05-22 | **카테고리 입력**: 자유 입력 + 프리셋 4종 (맛집/AI트렌드/안전/문화) | 데모 안정성 + 자유도 양립 |
 | 2026-05-22 | **비용 안전장치 도입**: 월 $15 / 일 $2 / run $0.50 / run당 30콜, `LLMBudgetExceeded` 즉시 차단, `SAFETY_MODE=dry_run` 무비용 디버깅 | 대회/데모 중 토론 폭주로 인한 과금 사고 방지 |
+| 2026-05-22 | **플러스탭 디자인 토큰 실측 확정**: `primary=#ff2e98`, `body=#181a1b`, `sub=#66707a`, `sub2=#525960`, `card-bg=#f9fafb`, `border-light=#e7ebee`. 템플릿 변수 치환은 단순 `str.replace` 만 사용 (Jinja/Mustache 루프 금지) | 실제 샘플 HTML 분석으로 추정값 폐기. 단순 치환 방침은 비개발자도 템플릿 수정 가능하게 하기 위함 |
 
 ---
 

@@ -1,32 +1,12 @@
 <!--
-  ====================================================================
-  PlusTap B 타입 (복합형: 이미지 + 글 + 본문 슬라이드 + 외부 랜딩) — 변수 템플릿
-  ====================================================================
-  사용법: HTML Builder 에이전트가 아래 {{VAR}} 들을 단순 치환합니다.
-         (str.replace 수준의 치환만 사용; Jinja/Mustache 루프 금지)
-
-  스칼라 변수:
-    {{TITLE}}                 — 히어로 제목 (HTML 내 <br /> 허용)
-    {{SUBTITLE}}              — 히어로 서브타이틀
-    {{HERO_IMAGE_URL}}        — 히어로 배경 이미지 URL
-    {{SECTION_TITLE}}         — 메인 섹션 제목 (<br /> 허용)
-    {{SECTION_BODY}}          — 메인 섹션 도입 본문 (3-5문장)
-    {{INTERNAL_CTA_LABEL}}    — 본문 내부 버튼 텍스트 (예: "이벤트 자세히 확인하기")
-    {{INTERNAL_CTA_URL}}      — 본문 내부 버튼 링크 (내부 라우트)
-    {{CLOSING_TEXT}}          — 마무리 멘트 (<br class="use-50" /> 허용)
-    {{EXTERNAL_CTA_LABEL}}    — 외부 랜딩 버튼 텍스트 (예: "현대카드 DIVE 바로가기")
-    {{EXTERNAL_CTA_URL}}      — 외부 랜딩 URL (https://…)
-
-  HTML 조각 변수 (사전 렌더링된 HTML):
-    {{SWIPER_SLIDES}}         — <div class="swiper-slide">…</div> 블록 N개 (이미지)
-                                ※ 슬라이드 최소 2개 이상 권장 (loop 동작 위함)
-    {{QUOTE_BOX_ITEMS}}       — <div class="quote">…</div> 블록 N개
-                                (예시: docs/samples/type_b_sample.html L162-187 참조)
-
-  ※ A 타입과의 차이:
-     1) 본문 중간에 swiper-box (필수)
-     2) 마무리 CTA 가 외부 랜딩 URL (btn-outlink + target="_blank")
-     3) Swiper 초기화 스크립트가 파일 하단에 필수 포함
+  PlusTap B타입 (복합형: 이미지 + 글 + 본문 내 슬라이드 + 랜딩 URL) 샘플
+  실제 콘텐츠: "현대카드 DIVE 이벤트 - 나의 원픽 콘텐츠 투표"
+  
+  A타입과의 차이:
+  1. 본문 중간에 swiper-box (이미지 슬라이드) 포함
+  2. 마무리 CTA가 외부 랜딩 URL (btn-outlink)
+  3. quote-box로 이벤트 정보 구조화
+  4. Swiper 초기화 스크립트 필수
 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -34,11 +14,11 @@
 <style>
   @charset "UTF-8";
   .plustab-article-wrap { position: relative; width: 100%; letter-spacing: normal; }
-
+  
   /* 히어로 */
   .plustab-article-key-visual {
     position: relative; width: 100%; height: 550px;
-    background: url("{{HERO_IMAGE_URL}}") no-repeat top center/auto 100%;
+    background: url("https://image.lguplus.com/static/sample-hero-dive.jpg") no-repeat top center/auto 100%;
   }
   .plustab-article-key-visual::before {
     content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 50%;
@@ -55,7 +35,7 @@
   .plustab-sub-title {
     margin-top: 12px; font-size: 18px; line-height: 1.5; color: #fff; font-weight: 500;
   }
-
+  
   /* 섹션 */
   .plustab-article { margin-top: 48px; padding: 0 20px; }
   .title-box { font-weight: 700; font-size: 28px; line-height: 1.3; color: #181a1b; }
@@ -63,16 +43,16 @@
     display: block; margin: 0 0 8px;
     font-size: 16px; font-weight: 600; line-height: 1.4; color: #66707a;
   }
-
+  
   /* 본문 */
   .article-content { margin-top: 20px; }
   .desc-box { font-size: 16px; font-weight: 500; line-height: 1.5; color: #181a1b; }
   .desc-box p + p { margin-top: 20px; }
-
+  
   /* 이미지 */
   .img-figure { width: 100%; border-radius: 12px; overflow: hidden; margin: 20px 0; }
   .img-figure img { display: block; width: 100%; }
-
+  
   /* 슬라이드 (B타입 핵심) */
   .swiper-box { width: 100%; margin: 20px 0; }
   .swiper-box .swiper {
@@ -99,20 +79,22 @@
     opacity: 1; margin: 0 4px; transition: all 0.3s ease; display: inline-block;
   }
   .swiper-box .swiper-pagination-bullet-active { width: 14px; background: #181a1b; }
-
+  
   /* 인용박스 (이벤트 정보) */
   .quote-box {
     margin-top: 20px; padding: 20px; border-radius: 12px; background-color: #f9fafb;
   }
   .quote { display: flex; gap: 16px; padding: 8px 0; }
   .quote + .quote { border-top: 1px solid #e7ebee; }
-  .quote-label { min-width: 60px; font-weight: 600; color: #181a1b; }
+  .quote-label {
+    min-width: 60px; font-weight: 600; color: #181a1b;
+  }
   .quote-text { color: #181a1b; }
   .quote-text li { padding: 4px 0; }
   .quote-text li .label {
     display: inline-block; margin-right: 8px; min-width: 68px; color: #66707a;
   }
-
+  
   /* 버튼 */
   .button-box { display: flex; flex-direction: column; margin-top: 40px; }
   .button-box > a {
@@ -125,7 +107,7 @@
   .btn-point { background-color: #ff2e98 !important; border-color: #ff2e98 !important; color: #fff !important; }
   .btn-fill { background-color: #181a1b !important; color: #fff !important; }
   .btn-outlink .ic { font-size: 12px; }
-
+  
   .plustab-article-intro {
     margin-top: 80px; position: relative; padding: 36px 20px 24px;
   }
@@ -136,58 +118,97 @@
   <!-- 히어로 -->
   <div class="plustab-article-key-visual">
     <div class="plustab-article-key-visual-tit">
-      <strong class="plustab-title">{{TITLE}}</strong>
-      <p class="plustab-sub-title">{{SUBTITLE}}</p>
+      <strong class="plustab-title">나의 취향저격 '원픽'<br />DIVE 콘텐츠는?</strong>
+      <p class="plustab-sub-title">투표하고 경품 받자 EVENT</p>
     </div>
   </div>
 
   <!-- 메인 섹션 -->
   <section class="plustab-article">
     <div class="title-box">
-      <strong class="title">{{SECTION_TITLE}}</strong>
+      <strong class="title">나의 '원픽' DIVE 콘텐츠를<br />투표해 주세요!</strong>
     </div>
     <div class="article-content">
 
-      <!-- 도입 본문 -->
+      <!-- 본문 텍스트 -->
       <div class="desc-box">
-        <p class="desc">{{SECTION_BODY}}</p>
+        <p class="desc">
+          현대카드 DIVE는 매일매일 취향을 업데이트합니다.
+          국내외 라이프스타일 주요 트렌드뿐만 아니라, 뮤직・아트 등의
+          문화 예술 뉴스, 슈퍼콘서트・다빈치모텔 등의 현대카드 이벤트를
+          가장 빠르게 만나 보세요.
+        </p>
       </div>
 
       <!-- ★ B타입 핵심: 본문 중간 슬라이드 -->
       <div class="swiper-box">
         <div class="swiper">
           <div class="swiper-wrapper">
-            {{SWIPER_SLIDES}}
+            <div class="swiper-slide">
+              <img src="https://image.lguplus.com/static/dive-slide-1.jpg" alt="DIVE 콘텐츠 1: 뮤직" />
+            </div>
+            <div class="swiper-slide">
+              <img src="https://image.lguplus.com/static/dive-slide-2.jpg" alt="DIVE 콘텐츠 2: 아트" />
+            </div>
+            <div class="swiper-slide">
+              <img src="https://image.lguplus.com/static/dive-slide-3.jpg" alt="DIVE 콘텐츠 3: 슈퍼콘서트" />
+            </div>
           </div>
           <div class="swiper-pagination"></div>
         </div>
       </div>
 
-      <!-- 이벤트/정보 정리 (quote-box) -->
+      <!-- 이벤트 정보 (quote-box) -->
       <div class="quote-box">
-        {{QUOTE_BOX_ITEMS}}
+        <div class="quote">
+          <span class="quote-label">기간</span>
+          <span class="quote-text">3월 24일(화) - 4월 17일(금)</span>
+        </div>
+        <div class="quote">
+          <span class="quote-label">발표</span>
+          <span class="quote-text">4월 28일(화)</span>
+        </div>
+        <div class="quote">
+          <span class="quote-label">방법</span>
+          <ol class="quote-text">
+            <li>현대카드 DIVE 콘텐츠 3개 이상 즐기기</li>
+            <li>이벤트 페이지에서 [이벤트 참여하기] 버튼 클릭</li>
+            <li>가장 마음에 드는 콘텐츠와 그 이유를 남겨주세요!</li>
+          </ol>
+        </div>
+        <div class="quote">
+          <span class="quote-label">경품</span>
+          <ul class="quote-text">
+            <li><span class="label">1등(1명) :</span><span>발뮤다 더 토스터 프로</span></li>
+            <li><span class="label">2등(3명) :</span><span>이솝 샤워 룸 세레나데 세트</span></li>
+            <li><span class="label">3등(6명) :</span><span>신세계 상품권 5만원</span></li>
+          </ul>
+        </div>
       </div>
 
-      <!-- 1차 CTA: 내부 라우트 -->
+      <!-- 1차 CTA: 내부 이벤트 페이지 -->
       <div class="button-box">
-        <a data-route class="btn btn-large btn-point" href="{{INTERNAL_CTA_URL}}">
-          <span>{{INTERNAL_CTA_LABEL}}</span>
+        <a data-route class="btn btn-large btn-point" href="/benefit-event/ongoing/82226">
+          <span>이벤트 자세히 확인하기</span>
         </a>
       </div>
     </div>
   </section>
 
-  <!-- 마무리 + ★ B타입 핵심: 외부 랜딩 URL -->
+  <!-- 마무리 인트로 + ★ B타입 핵심: 외부 랜딩 URL -->
   <section class="plustab-article-intro">
     <div class="article-content">
       <div class="desc-box">
-        <p class="desc">{{CLOSING_TEXT}}</p>
+        <p class="desc">
+          놀면 놀수록 빠져드는 컬처 앱으로<br class="use-50" />
+          지금 바로 DIVE!
+        </p>
       </div>
       <div class="button-box">
         <a data-route class="btn btn-large btn-fill btn-outlink"
-           href="{{EXTERNAL_CTA_URL}}"
+           href="https://dv.hyundaicard.com/LGUPLUS"
            target="_blank" title="새창열기">
-          <span>{{EXTERNAL_CTA_LABEL}}</span>
+          <span>현대카드 DIVE 바로가기</span>
           <i class="ic ic-outlink">↗</i>
         </a>
       </div>

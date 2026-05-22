@@ -1,41 +1,19 @@
 <!--
-  ====================================================================
-  PlusTap A 타입 (기본형: 이미지 + 글) — 변수 템플릿
-  ====================================================================
-  사용법: HTML Builder 에이전트가 아래 {{VAR}} 들을 단순 치환합니다.
-         (str.replace 수준의 치환만 사용; Jinja/Mustache 루프 금지)
-
-  스칼라 변수 (그냥 텍스트):
-    {{TITLE}}                — 히어로 제목 (HTML 내 <br /> 허용)
-    {{SUBTITLE}}             — 히어로 서브타이틀
-    {{HERO_IMAGE_URL}}       — 히어로 배경 이미지 URL
-    {{SECTION_SUBTITLE}}     — 섹션 상단 작은 라벨 (예: "제주 구좌읍")
-    {{SECTION_TITLE}}        — 섹션 큰 제목 (예: "돌담통닭")
-    {{BODY_IMAGE_URL}}       — 본문 대표 이미지 URL
-    {{BODY_IMAGE_ALT}}       — 본문 대표 이미지 alt
-    {{BODY_PARAGRAPH_1}}     — 첫 단락 (3-5문장 평서체)
-    {{BODY_PARAGRAPH_2}}     — 두 번째 단락 (선택, 비우려면 빈 문자열)
-    {{BODY_SUB_DESC}}        — 마지막 보조 설명 (선택, 회색)
-    {{CLOSING_TEXT}}         — 마무리 멘트 (1-2문장, <br /> 허용)
-    {{CTA_LABEL}}            — 버튼 텍스트 (예: "치킨 맛집 더 보기")
-    {{CTA_URL}}              — 버튼 링크 (내부 라우트)
-
-  HTML 조각 변수 (사전 렌더링된 HTML):
-    {{CALLOUT_ITEMS}}        — .callout 블록 N개를 이어붙인 HTML
-                              (예시: docs/samples/type_a_sample.html L147-160 참조)
-
-  ※ Phase 2 에서 채울 예정인 항목이 있으면 빈 문자열("") 로 두세요.
+  PlusTap A타입 (기본형: 이미지 + 글) 샘플
+  실제 콘텐츠: "배고프면 클릭 금지! 전국 치킨 찐맛집 - 돌담통닭편"
+  
+  AIDEN의 HTML Builder가 따라야 할 정확한 마크업 + 인라인 CSS 예시.
 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
 <style>
   @charset "UTF-8";
   .plustab-article-wrap { position: relative; width: 100%; letter-spacing: normal; }
-
+  
   /* 히어로 */
   .plustab-article-key-visual {
     position: relative; width: 100%; height: 550px;
-    background: url("{{HERO_IMAGE_URL}}") no-repeat top center/auto 100%;
+    background: url("https://image.lguplus.com/static/sample-hero.jpg") no-repeat top center/auto 100%;
   }
   .plustab-article-key-visual::before {
     content: ""; position: absolute; left: 0; bottom: 0;
@@ -58,7 +36,7 @@
   .plustab-article-key-visual-tit .plustab-sub-title {
     margin-top: 12px; font-size: 18px; line-height: 1.5; color: #fff; font-weight: 500;
   }
-
+  
   /* 섹션 */
   .plustab-article { margin-top: 48px; padding: 0 20px; }
   .title-box { font-weight: 700; font-size: 28px; line-height: 1.3; color: #181a1b; }
@@ -66,31 +44,37 @@
     display: block; margin: 0 0 8px;
     font-size: 16px; font-weight: 600; line-height: 1.4; color: #66707a;
   }
-
+  
   /* 본문 */
   .article-content { margin-top: 20px; }
-  .desc-box { font-size: 16px; font-weight: 500; line-height: 1.5; color: #181a1b; }
+  .desc-box {
+    font-size: 16px; font-weight: 500; line-height: 1.5; color: #181a1b;
+  }
   .desc-box .point-title {
     display: block; margin-bottom: 4px; color: #ff2e98; font-weight: 600;
   }
   .desc-box .sub-desc { color: #66707a; }
   .desc-box p + p { margin-top: 20px; }
-
+  
   /* 이미지 */
-  .img-figure { width: 100%; border-radius: 12px; overflow: hidden; }
+  .img-figure {
+    width: 100%; border-radius: 12px; overflow: hidden;
+  }
   .img-figure img { display: block; width: 100%; }
   .img-caption {
     margin-top: 10px; font-size: 14px; font-weight: 500;
     line-height: 1.5; color: #66707a;
   }
-
+  
   /* 콜아웃 카드 */
   .callout-box {
     margin-top: 20px; padding: 20px; border-radius: 12px;
     background-color: #f9fafb;
   }
   .callout-box + .callout-box { margin-top: 12px; }
-  .callout { font-size: 16px; font-weight: 500; color: #66707a; }
+  .callout {
+    font-size: 16px; font-weight: 500; color: #66707a;
+  }
   .callout + .callout { margin-top: 12px; }
   .callout strong {
     display: flex; align-items: center; gap: 6px;
@@ -98,9 +82,11 @@
   }
   .callout p { color: #181a1b; }
   .callout .link { color: #ff2e98; text-decoration: underline; }
-
+  
   /* 버튼 */
-  .button-box { display: flex; flex-direction: column; margin-top: 40px; }
+  .button-box {
+    display: flex; flex-direction: column; margin-top: 40px;
+  }
   .button-box > a, .button-box > button {
     display: flex; justify-content: center; align-items: center;
     width: 100%; height: 42px; padding: 0 16px;
@@ -110,12 +96,12 @@
   .btn-large { height: 56px !important; border-radius: 12px !important; }
   .btn-point { background-color: #ff2e98 !important; border-color: #ff2e98 !important; color: #fff !important; }
   .btn-fill { background-color: #181a1b !important; color: #fff !important; }
-
+  
   /* divider */
   .divider-gray {
     margin-top: 48px; width: 100%; height: 12px; background-color: #f9fafb;
   }
-
+  
   /* 마무리 인트로 */
   .plustab-article-intro {
     margin-top: 80px; position: relative; padding: 36px 20px 24px;
@@ -127,30 +113,50 @@
   <!-- 히어로 -->
   <div class="plustab-article-key-visual">
     <div class="plustab-article-key-visual-tit">
-      <strong class="plustab-title">{{TITLE}}</strong>
-      <p class="plustab-sub-title">{{SUBTITLE}}</p>
+      <strong class="plustab-title">배고프면 클릭 금지!<br />전국 치킨 찐맛집</strong>
+      <p class="plustab-sub-title">[맛집 모음.zip] 치킨집 편</p>
     </div>
   </div>
 
-  <!-- 본문 섹션 -->
+  <!-- 섹션 1: 돌담통닭 -->
   <section class="plustab-article">
     <div class="title-box">
-      <span class="subtitle">{{SECTION_SUBTITLE}}</span>
-      <strong class="title">{{SECTION_TITLE}}</strong>
+      <span class="subtitle">제주 구좌읍</span>
+      <strong class="title">돌담통닭</strong>
     </div>
     <div class="article-content">
       <p class="img-figure">
-        <img src="{{BODY_IMAGE_URL}}" alt="{{BODY_IMAGE_ALT}}" />
+        <img src="https://image.lguplus.com/static/sample-doldam.jpg" alt="돌담통닭 외관" />
       </p>
       <div class="desc-box">
-        <p class="desc">{{BODY_PARAGRAPH_1}}</p>
-        <p class="desc">{{BODY_PARAGRAPH_2}}</p>
-        <p class="sub-desc">{{BODY_SUB_DESC}}</p>
+        <p class="desc">
+          돌담통닭은 인공 조미료를 첨가하지 않고 국산 천일염으로만 염지한 닭을 사용한다.
+          야채를 갈아 숙성시킨 양념은 3대를 거쳐 내려오는 이곳의 비법이다.
+          특제 양념에 24시간 숙성한 닭을 튀겨 바삭하면서도 감칠맛 나는 치킨을 선보인다.
+        </p>
+        <p class="desc">
+          오징어와 깻잎을 잘게 다져 넣은 튀김옷의 '해물야채통닭'이 돌담통닭의 대표 메뉴다.
+          치킨과 함께 씹히는 쫄깃한 오징어와 향긋한 깻잎이 별미다.
+          달콤한 양념에 고소한 우도 땅콩이 가득 올라간 '우도땅콩양념통닭'도 남녀노소 모두 좋아할 맛이다.
+        </p>
+        <p class="sub-desc">재료 소진 시 주문이 불가능하니 서둘러 방문하는 것을 추천한다.</p>
       </div>
 
-      <!-- 인포 카드: 에이전트가 .callout 블록을 사전 렌더링해서 채움 -->
+      <!-- 인포 카드 -->
       <div class="callout-box">
-        {{CALLOUT_ITEMS}}
+        <div class="callout">
+          <strong><span class="emoji" aria-hidden="true">📍</span>주소</strong>
+          <p>제주 제주시 구좌읍 해녀박물관길 33-1 1층</p>
+        </div>
+        <div class="callout">
+          <strong><span class="emoji" aria-hidden="true">📞</span>전화</strong>
+          <p>064-782-5892</p>
+        </div>
+        <div class="callout">
+          <strong><span class="emoji" aria-hidden="true">📱</span>인스타그램</strong>
+          <a data-route class="link" href="https://www.instagram.com/doldam_chicken"
+             target="_blank" title="새창열기">바로가기</a>
+        </div>
       </div>
     </div>
   </section>
@@ -158,15 +164,18 @@
   <!-- 회색 divider -->
   <div class="divider-gray"></div>
 
-  <!-- 마무리 인트로 + 내부 CTA -->
+  <!-- 마무리 인트로 + 외부 CTA -->
   <section class="plustab-article-intro">
     <div class="article-content">
       <div class="desc-box">
-        <p class="desc">{{CLOSING_TEXT}}</p>
+        <p class="desc">
+          오늘 저녁, 어디서 치킨 한 마리 시켜볼까 고민된다면<br />
+          위의 찐맛집 리스트를 참고해 보세요.
+        </p>
       </div>
       <div class="button-box">
-        <a data-route class="btn btn-large btn-fill" href="{{CTA_URL}}">
-          <span>{{CTA_LABEL}}</span>
+        <a data-route class="btn btn-large btn-fill" href="/contents/list/chicken">
+          <span>치킨 맛집 더 보기</span>
         </a>
       </div>
     </div>
