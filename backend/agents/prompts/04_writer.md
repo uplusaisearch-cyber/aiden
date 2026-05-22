@@ -37,16 +37,20 @@ runtime에 전달되는 JSON:
   "previous_draft": { ... },            // 직전 Writer 출력
   "factcheck_log": { ... },             // 직전 Fact-Checker 출력
   "critique": { ... },                  // 직전 Devil's Advocate 출력
-  "editor_instructions": "..."          // Editor-in-Chief revision 지시
+  "editor_instructions": [              // Editor-in-Chief revision 지시 (배열)
+    {"target": "수정 대상", "instruction": "구체적 지시"}
+  ]
 }
 ```
+
+**입력 비고**: iter 2+ 에서도 `category`는 최상위 필드로 동일하게 전달됨. `previous_draft.category`와 항상 일치.
 
 ## 출력 형식 (반드시 이 JSON 그대로)
 
 ```json
 {
   "draft_version": 1,
-  "category": "",
+  "category": "<입력 category 그대로>",
   "title": "최종 제목 (낚시 금지, 정확, 25자 이내)",
   "subtitle": "부제목 1줄 (40자 이내)",
   "intro": "후킹 도입부 (2-3문장, 독자 공감 또는 질문)",
@@ -62,11 +66,23 @@ runtime에 전달되는 JSON:
   ],
   "closing": "마무리 (2-3문장, 실용 팁 1줄 포함)",
   "cta": "행동 유도 문구 1줄",
-  "revision_notes": "iteration >= 2일 때만: editor_instructions의 어느 지시를 어떻게 반영했는지 항목별로"
+  "revision_notes": [
+    // iteration 1: 빈 배열 []
+    // iteration 2+: editor_instructions 각 항목별 반영 결과
+    {
+      "target": "editor_instructions[N]의 target 그대로",
+      "applied": "어떻게 반영했는지 1-2문장"
+    }
+  ]
 }
 ```
 
 ## 규칙
+- `strategy` 활용:
+  - `key_messages`: 본문에 모두 반영 (필수)
+  - `data_grounding`: 본문에 반드시 인용·반영 (필수)
+  - `target_persona`: 톤·예시 선택 시 참고
+  - `content_type_recommendation`: Format Architect 영역. Writer는 무시.
 - 모든 수치·날짜·고유명사·인용은 `fact_claims`에 반드시 명시
 - 추측·과장 금지. 모르는 건 안 씀
 - Strategy Planner의 `key_messages`를 모두 다룸

@@ -25,3 +25,35 @@
 ## 4. 진행률 추적
 - 묶음 2 작업 항목: Trend Scout / Audience Analyst / Strategy Planner / HTML Builder
 - 4개 prompt + 위 1-3번 구현 = 묶음 2 완료 조건
+
+## 5. Format Architect → HTML Builder 핸드오프 정의
+
+### 5-1. placeholder_locations.location 형식
+- 현재 dotted notation 사용 (예: "section.hero.img-figure")
+- HTML Builder가 이걸 어떻게 해석할지(CSS selector? 가상 경로? AST?) 묶음 2에서 정의
+- 권장: AIDEN 자체 mini-DSL 정의 후 HTML Builder가 파싱
+
+### 5-2. layout_hints.image_descriptions 용도
+- alt text용? 이미지 생성 프롬프트용? placeholder URL 캡션용?
+- 묶음 2 HTML Builder 또는 이후 이미지 생성 에이전트에서 어떻게 소비할지 정의
+
+### 5-3. placement: between_sections 모호성
+- "어느 섹션 사이"인지 명시 필요
+- 권장: between_section_N_and_N+1 형식 또는 LLM이 인덱스 명시
+
+### 5-4. CALCULATOR.formula 안전성
+- 문자열 수식 → JS eval 위험
+- mathjs 같은 안전 표현식 파서 도입 또는 화이트리스트 연산자(+, -, *, /, 괄호)만 허용
+- HTML Builder 또는 Frontend 렌더링 단계에서 처리
+
+### 5-5. Google Search Grounding 호출 단위
+- Fact-Checker가 claim 1개당 1회 호출인지, 묶어서 호출인지 결정 필요
+- 비용·속도 트레이드오프
+- Content Newsroom 오케스트레이터 또는 base_agent에서 분기 처리
+
+## 6. base_agent 치환 화이트리스트 강제 (이슈/리스크에서 이관)
+
+- `{{VAR}}` 치환은 Format Architect의 `placeholder_locations` 화이트리스트 기반
+- 매핑 외 `{{VAR}}` 패턴은 무시 (= 주석 안에 있는 변수 자동 보호)
+- type_a/b.html 헤더 주석의 문서화용 `{{VAR}}` 안전하게 보존됨
+- 묶음 2 base_agent.py 구현 시 치환 함수에 명시

@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-05-22 |
+| **마지막 업데이트** | 2026-05-23 |
 | **전체 진행률** | **34.8%** (16/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (묶음 1 / 콘텐츠 품질 라인 완료) |
+| **현재 Phase** | Phase 2 진행 중 (묶음 1 / 콘텐츠 품질 라인 완료, 검토 패치 16건 적용) |
 
 ---
 
@@ -102,6 +102,8 @@
 | 2026-05-22 | **Editor 강제 종료**(iter 3 + DA fail): `approved` + `known_weaknesses` 명시 | 무한 루프 방지. 약점을 숨기지 않고 발표/심사 단계의 투명성 카드로 활용 |
 | 2026-05-22 | **Format Architect placeholder 는 `render_zone=outside_comment` 강제** (HTML 주석 내부 치환 방지) | type_a/b.html 의 헤더 주석에도 `{{VAR}}` 가 등장하므로, 주석 내부에서 치환되면 디버깅 혼란 발생 |
 | 2026-05-22 | **묶음 1→2 핸드오프 TODO 는 `docs/NEXT_BUNDLE_NOTES.md` 참조** | 묶음 1 진행 중 발생한 묶음 2 작업 요건(HTML Builder render_zone 룰, base_agent TONE_REFERENCE 치환, 오케스트레이터 설계)을 한 곳에 모아 컨텍스트 이전 손실 방지 |
+| 2026-05-23 | **묶음 1 검토 패치 16건 적용 완료**: DA(입력 category 추가, critical_issues 개수와 pass_threshold 독립 명시, carried_over iter 1=[] 명시) / Editor(비판 수용 규칙 라운드별 차등 3·2·1, accepted·rejected_critiques.issue 객체화, revision_instructions 배열화, final_content 기반은 annotated_draft, editorial_decision 톤 강화, iter 3 강제 종료 시 known_weaknesses 필수 포함 항목 명시) / Format Architect(base_layout 필드 추가, 카테고리 "기타" 처리 규칙) / Writer(editor_instructions·revision_notes 배열화, strategy 활용 가이드, iter 2+ category 일관성) / Fact-Checker(annotated_draft 에 fact_claims 유지+status 메타, [출처:] 삽입 위치 규칙, confidence_score 계산식 차등 corrected -1 / unverified -2) | 1차 초안 검토에서 발견된 스키마 정합성·라운드별 운영 일관성·관측 가능성 이슈 일괄 정리 |
+| 2026-05-23 | **base_agent 치환 화이트리스트 강제 결정 (옵션 B)**: `placeholder_locations` 매핑 외 `{{VAR}}` 는 무시 → 주석 자동 보호. 마커 통일 유지 | 주석 안 변수명을 문서화 목적으로 보존하면서도 의도치 않은 치환 사고를 차단. 묶음 2 base_agent.py 구현 시 적용 |
 
 ---
 
@@ -109,7 +111,4 @@
 
 > 발견 시 `발견일 · 항목 · 영향도(낮음/중간/높음) · 대응안` 형식으로 추가.
 
-- **2026-05-22 · HTML Builder placeholder 주석 내부 치환 위험 · 중간**:
-  `type_a.html` / `type_b.html` 헤더 주석에도 변수명 문서화 목적의 `{{VAR}}` 가 등장함.
-  HTML Builder 구현 시 Format Architect 가 명시한 `placeholder_locations.render_zone == "outside_comment"` 인 위치만 치환하도록 강제 필요.
-  대응안: 묶음 2 에서 09_html_builder.md 작성 시 명시 + base_agent 치환 로직에 안전장치 추가 (`docs/NEXT_BUNDLE_NOTES.md` §1 참조).
+- **HTML Builder placeholder 주석 내부 치환 위험 (해결책 확정)** — base_agent 치환을 Format Architect 의 `placeholder_locations` 화이트리스트 기반으로 구현하기로 결정. 매핑 외 `{{VAR}}` 는 무시. 묶음 2 base_agent.py 구현 시 적용. 상세는 `docs/NEXT_BUNDLE_NOTES.md` §6.

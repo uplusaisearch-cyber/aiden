@@ -113,6 +113,7 @@ Editor의 `final_content` JSON
 {
   "format_analysis": "본문 성격 분석 2-3문장",
   "selected_type": "A | B | C",
+  "base_layout": "A | B",  // C일 때만 의미: C의 base가 슬라이드 포함(B) 여부. A 선택 시 selected_type과 동일.
   "type_reasoning": "왜 이 타입인지 (2-3문장)",
   
   // C 타입일 때만:
@@ -156,3 +157,4 @@ Editor의 `final_content` JSON
 - `placement` 옵션 외 자유 위치 지정 금지
 - 카테고리 "안전"은 SCENARIO_SIM 또는 QUIZ 우선 고려
 - 카테고리 "맛집"·"문화"는 A/B 기본, C는 비교 가치 있을 때만
+- 카테고리 "기타" 또는 매핑 없는 경우: 본문 성격 분석 후 A 기본, 슬라이드성·다단 소개면 B, 체험 가치 명확하면 C
