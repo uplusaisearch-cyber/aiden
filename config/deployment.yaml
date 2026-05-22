@@ -1,0 +1,11 @@
+# =====================================================================
+# 배포 환경별 URL 설정
+# =====================================================================
+
+environments:
+  local:
+    backend_url: "http://localhost:8000"
+    frontend_url: "http://localhost:3000"
+  production:
+    backend_url: ""   # Railway URL (배포 후 입력)
+    frontend_url: ""  # Vercel URL (배포 후 입력)

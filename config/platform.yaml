@@ -1,0 +1,30 @@
+# =====================================================================
+# 게재 플랫폼(플러스탭) 콘텐츠 타입 정의
+# =====================================================================
+
+platform:
+  name: "PlusTap"
+  content_types:
+    - id: "A"
+      name: "기본형"
+      description: "이미지 + 글"
+    - id: "B"
+      name: "복합형"
+      description: "이미지 + 글 + 본문 내 슬라이드 + 랜딩 URL"
+    - id: "C"
+      name: "인터랙티브"
+      description: "인터랙티브 요소 포함"
+
+  interactive_templates:
+    - id: "QUIZ"
+      description: "객관식/OX 퀴즈 시리즈"
+    - id: "CALCULATOR"
+      description: "입력값 → 결과값 계산기"
+    - id: "SCENARIO_SIM"
+      description: "분기형 시나리오 시뮬레이션"
+    - id: "COMPARE_SLIDER"
+      description: "좌우 비교 슬라이더"
+    - id: "CHECKLIST"
+      description: "진행률 표시 체크리스트"
+
+html_structure_reference: "backend/templates/plustab_structure.md"

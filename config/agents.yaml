@@ -1,0 +1,50 @@
+# =====================================================================
+# 9 에이전트 모델 & 오케스트레이션 설정
+# 코드 수정 없이 모델 교체/라운드 수 조정이 가능합니다.
+# =====================================================================
+
+# 모델 별칭 → 실제 모델 ID 매핑
+# 코드 안에서는 항상 별칭(gemini_pro / gemini_flash / openai_judge / anthropic_judge)을 사용
+models:
+  gemini_pro: "gemini-2.5-pro"
+  gemini_flash: "gemini-2.5-flash"
+  openai_judge: "gpt-5"             # 추후 실제 모델명으로 조정
+  anthropic_judge: "claude-opus-4-7"
+
+agents:
+  trend_scout:
+    model: "gemini_flash"
+    grounding: true
+  audience_analyst:
+    model: "gemini_flash"
+    grounding: false
+  strategy_planner:
+    model: "gemini_pro"
+    grounding: false
+  writer:
+    model: "gemini_pro"
+    grounding: false
+  fact_checker:
+    model: "gemini_flash"
+    grounding: true
+  devils_advocate:
+    model: "gemini_flash"
+    grounding: false
+  editor_in_chief:
+    model: "gemini_pro"
+    grounding: false
+  format_architect:
+    model: "gemini_pro"
+    grounding: false
+  html_builder:
+    model: "gemini_pro"
+    grounding: false
+
+orchestration:
+  content_newsroom:
+    max_iterations: 3
+    # 라운드별 Devil's Advocate 비판 개수
+    devils_advocate_critique_count:
+      round_1: 5
+      round_2: 3
+      round_3: 1
