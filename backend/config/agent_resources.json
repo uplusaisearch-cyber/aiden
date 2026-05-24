@@ -1,0 +1,11 @@
+{
+  "_comment": "Prompt 내 {{KEY_NAME}} placeholder 주입 매핑. 새 placeholder 추가 시 여기에 등록.",
+  "_last_updated": "2026-05-23",
+
+  "TONE_REFERENCE": {
+    "source_type": "file",
+    "path": "docs/samples/content_voice_examples.md",
+    "used_by": ["04_writer.md"],
+    "description": "콘텐츠 톤 가이드. Writer가 작성 시 참조."
+  }
+}

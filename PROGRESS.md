@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-23 |
-| **전체 진행률** | **43.5%** (20/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (묶음 2 Step 1 완료 / 4개 prompt 신규 작성) |
+| **전체 진행률** | **52.2%** (24/46 항목 완료) |
+| **현재 Phase** | Phase 2 진행 중 (묶음 2 Step 2 완료 / base_agent.py 일반화 + 단위 테스트 9건) |
 
 ---
 
@@ -38,6 +38,10 @@
 - [x] HTML Builder system prompt 작성 _(2026-05-23)_
 - [x] 플러스탭 HTML 샘플 분석 → templates/plustab_structure.md 채우기 _(2026-05-22)_
 - [x] type_a.html, type_b.html 템플릿 완성 _(2026-05-22)_
+- [x] base_agent.py 일반화 (PromptLoader + WhitelistedSubstitutor) _(2026-05-23)_
+- [x] backend/config/agent_resources.json 신규 _(2026-05-23)_
+- [x] backend/config/cdn_urls.json 신규 _(2026-05-23)_
+- [x] tests/test_base_agent.py 단위 테스트 _(2026-05-23)_
 - [ ] Topic Newsroom 오케스트레이터 (Stage 1)
 - [ ] Content Newsroom 오케스트레이터 (Stage 2, max 3 iter)
 - [ ] Game-ifier 오케스트레이터 (Stage 3)
@@ -108,6 +112,7 @@
 | 2026-05-23 | **묶음 2 분할 진행 결정**: Step 1=4개 prompt 신규 작성(이번 단계 완료), Step 2(다음)=base_agent.py 일반화(TONE_REFERENCE + placeholder 화이트리스트 치환), Step 3(다다음)=오케스트레이터 3개(Topic Newsroom + Content Newsroom + Game-ifier), 묶음 3(별도)=Judge Panel + 통합 테스트 | 한 번에 묶어 처리 시 검토 단위 비대화. 단계별 commit + 검토 사이클 유지 위함 |
 | 2026-05-23 | **묶음 2 Step 1 검토 패치 13건 적용 완료**: Trend Scout(target_date 활용 명시, category 자유 입력 처리, sources 체인 흐름 주석) / Audience Analyst(오케스트레이터 전달 방식 명시, angle_suggestion 참조 흐름 주석) / Strategy Planner(의사결정 로직 데드락 방지 rule 5 + angle_suggestion 참조 rule 6 추가, final_topic.category 추가, data_grounding.source 객체화, Trend Scout 결과 개수 방어 규칙) / HTML Builder(sample 파일 누락 시 대응, html escape 모순 해소, swiper 라이브러리 CDN 명시, 이미지 URL default 처리=placeholder URL) | 묶음 2 Step 1 4개 prompt 1차 검토에서 발견된 스키마/규칙 정합성·런타임 안전성 이슈 일괄 정리 |
 | 2026-05-23 | **묶음 2 Step 2/3 진입 전 미정사항 3건 NEXT_BUNDLE_NOTES §7로 정리**: 7-1 외부 CDN URL config화(Step 2 검토), 7-2 실제 이미지 URL 주입 시점(Step 3 검토), 7-3 에이전트 간 데이터 흐름 명세(Step 3 필수) | Step 2/3 진입 시 컨텍스트 손실 없이 의사결정 이어가기 위함 |
+| 2026-05-23 | **묶음 2 Step 2 완료: base_agent.py 일반화** — PromptLoader(`{{KEY_NAME}}` placeholder를 `backend/config/agent_resources.json` 매핑에서 자동 주입, file/inline source_type 지원, 매핑 없는 placeholder는 보존, 파일·JSON 오류는 경고+빈 매핑) + WhitelistedSubstitutor(Format Architect의 `placeholder_locations` + `render_zone="outside_comment"` 화이트리스트 기반 치환, HTML 주석 영역은 정규식 우회로 보존). 결정 A(CDN URL config화): `backend/config/cdn_urls.json` 분리 생성, prompt 직접 참조는 Step 3 또는 별도 패치. 결정 B(placeholder 일반화): TONE_REFERENCE 외 확장 가능 구조. 단위 테스트 9건 통과(PromptLoader 5 + WhitelistedSubstitutor 4). 기존 `Agent` 클래스도 PromptLoader 경유로 치환 적용. | 묶음 1 §6 결정사항(화이트리스트 치환·주석 보호)과 Writer의 `{{TONE_REFERENCE}}` 주입을 단일 메커니즘으로 통합. 이후 placeholder 신규는 config json 한 곳에만 등록 |
 
 ---
 

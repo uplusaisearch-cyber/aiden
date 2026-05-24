@@ -1,0 +1,15 @@
+{
+  "_comment": "외부 CDN URL 모음. 보안 패치·버전 업데이트 시 이 파일만 수정.",
+  "_last_updated": "2026-05-23",
+
+  "mathjs": {
+    "version": "12.4.2",
+    "js": "https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"
+  },
+
+  "swiper": {
+    "version": "11",
+    "js": "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js",
+    "css": "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+  }
+}

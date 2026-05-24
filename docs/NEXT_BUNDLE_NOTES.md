@@ -69,6 +69,8 @@
 - 옵션 B: `backend/config/cdn_urls.json` 분리 → base_agent가 prompt에 주입 → prompt는 키만 참조
 - Step 2 base_agent 일반화 시 검토
 
+> **상태 (2026-05-23)**: cdn_urls.json 분리 생성 완료. 다만 prompt에서 직접 참조는 아직 안 함 (현행 prompt에 CDN URL 하드코딩 유지). Step 3 또는 별도 패치에서 prompt 참조 방식 결정 후 적용 예정.
+
 ### 7-2. 실제 이미지 URL 주입 시점 (Step 3 검토)
 - HTML Builder는 입력에 실제 이미지 URL 없음
 - 현재 default: placeholder URL `https://image.lguplus.com/static/{slug}.jpg` 사용
