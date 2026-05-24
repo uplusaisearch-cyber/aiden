@@ -78,6 +78,8 @@
 - 옵션 B: 별도 이미지 생성 에이전트가 layout_hints.image_descriptions로 생성 → 오케스트레이터가 final_content에 주입 → HTML Builder가 받음
 - Step 3 오케스트레이터 설계 시 결정
 
+> **상태 (2026-05-23)**: MVP 결정 - placeholder URL 그대로 유지. 별도 이미지 생성 에이전트는 묶음 3 또는 v2에서 검토. HTML Builder가 default URL 패턴 사용.
+
 ### 7-3. 에이전트 간 데이터 흐름 명세 (Step 3 필수)
 - 각 prompt의 입출력 스키마는 정의되었으나, 오케스트레이터가 어느 필드를 어느 에이전트에 어떻게 잘라서 넘기는지 명세 누락
 - Step 3 Topic Newsroom / Content Newsroom 오케스트레이터 설계 시 명시 필요:
@@ -86,3 +88,5 @@
   - Strategy Planner.final_topic이 Writer.strategy로 들어갈 때 매핑 (category는 외부에서 별도 주입 또는 final_topic.category에서 추출)
   - Editor.final_content + Format Architect 출력이 HTML Builder 입력으로 합쳐지는 방식
 - 권장: `backend/orchestrators/data_flow_spec.md` 또는 오케스트레이터 코드 상단 주석으로 명세화
+
+> **상태 (2026-05-23)**: data_flow_spec.md 신규 작성으로 해소. Stage 1~3 전체 핸드오프 규칙 명세화. Step 3-2/3-3 진행하면서 보강 예정.
