@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-23 |
-| **전체 진행률** | **34.8%** (16/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (묶음 1 / 콘텐츠 품질 라인 완료, 검토 패치 16건 적용) |
+| **전체 진행률** | **43.5%** (20/46 항목 완료) |
+| **현재 Phase** | Phase 2 진행 중 (묶음 2 Step 1 완료 / 4개 prompt 신규 작성) |
 
 ---
 
@@ -27,15 +27,15 @@
 ## Phase 2: 9 Agents + Orchestration ⬜
 
 - [x] 비용 안전장치 (cost_tracker + 예산 enforcement + dry-run 모드) _(2026-05-22)_
-- [ ] Trend Scout system prompt 작성
-- [ ] Audience Analyst system prompt 작성
-- [ ] Strategy Planner system prompt 작성
+- [x] Trend Scout system prompt 작성 _(2026-05-23)_
+- [x] Audience Analyst system prompt 작성 _(2026-05-23)_
+- [x] Strategy Planner system prompt 작성 _(2026-05-23)_
 - [x] Writer system prompt 작성 _(2026-05-22)_
 - [x] Fact-Checker system prompt 작성 _(2026-05-22)_
 - [x] Devil's Advocate system prompt 작성 _(2026-05-22)_
 - [x] Editor-in-Chief system prompt 작성 _(2026-05-22)_
 - [x] Format Architect system prompt 작성 _(2026-05-22)_
-- [ ] HTML Builder system prompt 작성
+- [x] HTML Builder system prompt 작성 _(2026-05-23)_
 - [x] 플러스탭 HTML 샘플 분석 → templates/plustab_structure.md 채우기 _(2026-05-22)_
 - [x] type_a.html, type_b.html 템플릿 완성 _(2026-05-22)_
 - [ ] Topic Newsroom 오케스트레이터 (Stage 1)
@@ -104,6 +104,10 @@
 | 2026-05-22 | **묶음 1→2 핸드오프 TODO 는 `docs/NEXT_BUNDLE_NOTES.md` 참조** | 묶음 1 진행 중 발생한 묶음 2 작업 요건(HTML Builder render_zone 룰, base_agent TONE_REFERENCE 치환, 오케스트레이터 설계)을 한 곳에 모아 컨텍스트 이전 손실 방지 |
 | 2026-05-23 | **묶음 1 검토 패치 16건 적용 완료**: DA(입력 category 추가, critical_issues 개수와 pass_threshold 독립 명시, carried_over iter 1=[] 명시) / Editor(비판 수용 규칙 라운드별 차등 3·2·1, accepted·rejected_critiques.issue 객체화, revision_instructions 배열화, final_content 기반은 annotated_draft, editorial_decision 톤 강화, iter 3 강제 종료 시 known_weaknesses 필수 포함 항목 명시) / Format Architect(base_layout 필드 추가, 카테고리 "기타" 처리 규칙) / Writer(editor_instructions·revision_notes 배열화, strategy 활용 가이드, iter 2+ category 일관성) / Fact-Checker(annotated_draft 에 fact_claims 유지+status 메타, [출처:] 삽입 위치 규칙, confidence_score 계산식 차등 corrected -1 / unverified -2) | 1차 초안 검토에서 발견된 스키마 정합성·라운드별 운영 일관성·관측 가능성 이슈 일괄 정리 |
 | 2026-05-23 | **base_agent 치환 화이트리스트 강제 결정 (옵션 B)**: `placeholder_locations` 매핑 외 `{{VAR}}` 는 무시 → 주석 자동 보호. 마커 통일 유지 | 주석 안 변수명을 문서화 목적으로 보존하면서도 의도치 않은 치환 사고를 차단. 묶음 2 base_agent.py 구현 시 적용 |
+| 2026-05-23 | **묶음 2 Step 1 완료**: 4개 prompt 신규 작성 (Trend Scout / Audience Analyst / Strategy Planner / HTML Builder). 묶음 1 검토 패턴 적용(category 입력 일관, 입출력 키 매칭, 항목별 배열화, AI 클리셰 금지 명시). NEXT_BUNDLE_NOTES.md §5의 5건 미정사항 모두 확정 적용: (1) placeholder_locations.location=dotted notation, (2) image_descriptions=alt+이미지 생성 프롬프트 통합, (3) placement 구체화=between_section_N_and_N+1, (4) CALCULATOR formula=mathjs 사용/eval 금지, (5) Grounding 호출 단위=draft 전체 1회 | Topic Newsroom + Game-ifier + HTML Builder 진입 전 prompt 계층 확정 |
+| 2026-05-23 | **묶음 2 분할 진행 결정**: Step 1=4개 prompt 신규 작성(이번 단계 완료), Step 2(다음)=base_agent.py 일반화(TONE_REFERENCE + placeholder 화이트리스트 치환), Step 3(다다음)=오케스트레이터 3개(Topic Newsroom + Content Newsroom + Game-ifier), 묶음 3(별도)=Judge Panel + 통합 테스트 | 한 번에 묶어 처리 시 검토 단위 비대화. 단계별 commit + 검토 사이클 유지 위함 |
+| 2026-05-23 | **묶음 2 Step 1 검토 패치 13건 적용 완료**: Trend Scout(target_date 활용 명시, category 자유 입력 처리, sources 체인 흐름 주석) / Audience Analyst(오케스트레이터 전달 방식 명시, angle_suggestion 참조 흐름 주석) / Strategy Planner(의사결정 로직 데드락 방지 rule 5 + angle_suggestion 참조 rule 6 추가, final_topic.category 추가, data_grounding.source 객체화, Trend Scout 결과 개수 방어 규칙) / HTML Builder(sample 파일 누락 시 대응, html escape 모순 해소, swiper 라이브러리 CDN 명시, 이미지 URL default 처리=placeholder URL) | 묶음 2 Step 1 4개 prompt 1차 검토에서 발견된 스키마/규칙 정합성·런타임 안전성 이슈 일괄 정리 |
+| 2026-05-23 | **묶음 2 Step 2/3 진입 전 미정사항 3건 NEXT_BUNDLE_NOTES §7로 정리**: 7-1 외부 CDN URL config화(Step 2 검토), 7-2 실제 이미지 URL 주입 시점(Step 3 검토), 7-3 에이전트 간 데이터 흐름 명세(Step 3 필수) | Step 2/3 진입 시 컨텍스트 손실 없이 의사결정 이어가기 위함 |
 
 ---
 

@@ -25,9 +25,7 @@ Trend Scout(데이터)와 Audience Analyst(타겟)의 의견을 종합해 최종
 2. 만약 그 주제의 `trend_scout.sources`가 빈약하면(2개 미만) 다른 주제 재검토
 3. `trend_scout.longevity`가 `spike`인 주제는 피함 (evergreen/seasonal 우선)
 4. Audience fit_score 7 미만 주제는 선택 안 함
-5. **3개 모두 fit_score 7 미만인 경우**: 최고점 1개 선택 + `deliberation`에 "audience fit 미흡 경고" 명시
-6. `final_topic.angle` 결정 시 `audience_analyst.audience_evaluation[i].angle_suggestion`을 우선 참고. 채택 시 `deliberation`에 명시, 안 채택 시 이유 명시.
-7. 최종 1개 선택. 나머지 2개는 `rejected_topics`에 사유 명시.
+5. 최종 1개 선택. 나머지 2개는 `rejected_topics`에 사유 명시.
 
 ## 출력 형식 (반드시 이 JSON 그대로)
 ```json
@@ -35,13 +33,12 @@ Trend Scout(데이터)와 Audience Analyst(타겟)의 의견을 종합해 최종
   "category": "<입력 category 그대로>",
   "deliberation": "결론 한 문장 + 근거 2-3문장. 회의실 톤 OK하되 추임새/늘어뜨리기 금지.",
   "final_topic": {
-    "category": "<입력 category 그대로>",
     "title": "콘텐츠 가제목 (실제 발행 가능한 수준, 25자 이내)",
     "angle": "이 주제를 어떤 각도로 풀어낼지 1문장",
     "target_persona": "주요 독자 1명 구체적 묘사 (예: '맞벌이 30대 부모, 주말 가족 식사 메뉴 고민')",
     "content_type_recommendation": "A|B|C",
     "type_reasoning": "왜 이 타입을 추천하는지 1-2문장 (Format Architect 참고용)",
-    "estimated_read_time_min": 3,  // 본문 글자수 기반 추정 (한글 500자/분 기준). Writer는 무시 가능, 어드민 표시용.
+    "estimated_read_time_min": 3,
     "key_messages": [
       "핵심 메시지 1",
       "핵심 메시지 2",
@@ -50,11 +47,7 @@ Trend Scout(데이터)와 Audience Analyst(타겟)의 의견을 종합해 최종
     "data_grounding": [
       {
         "fact": "본문에 반드시 인용할 데이터/사실",
-        "source": {
-          "domain": "naver.com",
-          "url": "https://...",
-          "date": "2026-05"
-        }
+        "source_hint": "Trend Scout가 제공한 출처 (Writer가 Fact-Checker에 전달)"
       }
     ]
   },
@@ -70,7 +63,6 @@ Trend Scout(데이터)와 Audience Analyst(타겟)의 의견을 종합해 최종
 ## 규칙
 - `final_topic`은 정확히 1개
 - `rejected_topics`는 **정확히 2개** (Trend Scout가 3개 줬으므로)
-- **방어 규칙**: Trend Scout가 어떤 이유로 3개 미만(2개 또는 1개)을 줬다면, rejected_topics는 `(받은 개수 - 1)`개. deliberation에 "Trend Scout가 N개만 제공" 명시.
 - 데이터(Trend Scout)와 타겟(Audience Analyst) 의견 충돌 시:
   - 예: 출처는 빈약하지만 fit_score 높음
   - 예: 검색량 high지만 fit_score 낮음

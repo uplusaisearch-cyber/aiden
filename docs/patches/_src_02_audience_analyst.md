@@ -23,7 +23,7 @@ Trend Scout가 제시한 3개 주제 각각이 우리 타겟에게 꽂힐지 평
 ```json
 {
   "category": "...",
-  "trending_topics": [ ... ]  // Trend Scout 출력의 trending_topics만 전달됨 (오케스트레이터가 추출). summary/search_queries_used는 본 에이전트에서 무시.
+  "trending_topics": [ ... ]
 }
 ```
 
@@ -37,7 +37,7 @@ Trend Scout가 제시한 3개 주제 각각이 우리 타겟에게 꽂힐지 평
       "fit_score": 8,
       "reasoning": "왜 이 점수인지 (타겟 페르소나 관점, 2-3문장)",
       "concerns": "우려사항 (없으면 빈 문자열)",
-      "angle_suggestion": "이 주제로 가면 어떤 앵글이 좋을지 1문장 (Strategy Planner가 final_topic.angle 결정 시 우선 참고)"
+      "angle_suggestion": "이 주제로 가면 어떤 앵글이 좋을지 1문장"
     }
   ],
   "verdict": {

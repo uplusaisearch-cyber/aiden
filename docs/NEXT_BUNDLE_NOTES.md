@@ -51,9 +51,36 @@
 - 비용·속도 트레이드오프
 - Content Newsroom 오케스트레이터 또는 base_agent에서 분기 처리
 
+> **상태**: 위 5건 모두 2026-05-23 묶음 2 Step 1 작업 중 확정. HTML Builder prompt + Trend Scout prompt에 반영 완료. 본 섹션은 이력 보존 목적으로 유지.
+
 ## 6. base_agent 치환 화이트리스트 강제 (이슈/리스크에서 이관)
 
 - `{{VAR}}` 치환은 Format Architect의 `placeholder_locations` 화이트리스트 기반
 - 매핑 외 `{{VAR}}` 패턴은 무시 (= 주석 안에 있는 변수 자동 보호)
 - type_a/b.html 헤더 주석의 문서화용 `{{VAR}}` 안전하게 보존됨
 - 묶음 2 base_agent.py 구현 시 치환 함수에 명시
+
+## 7. Step 2/3 작업 진입 전 결정·구현 필요 사항 (묶음 2 Step 1 검토에서 도출)
+
+### 7-1. 외부 CDN URL config화 (Step 2 검토)
+- mathjs (12.4.2), swiper (v11) 등 CDN URL이 prompt에 하드코딩됨
+- 보안 패치·버전 업데이트 시 prompt 재편집 필요
+- 옵션 A: 현행 유지 (단순)
+- 옵션 B: `backend/config/cdn_urls.json` 분리 → base_agent가 prompt에 주입 → prompt는 키만 참조
+- Step 2 base_agent 일반화 시 검토
+
+### 7-2. 실제 이미지 URL 주입 시점 (Step 3 검토)
+- HTML Builder는 입력에 실제 이미지 URL 없음
+- 현재 default: placeholder URL `https://image.lguplus.com/static/{slug}.jpg` 사용
+- 옵션 A: 사람이 어드민에서 채움 (default, MVP)
+- 옵션 B: 별도 이미지 생성 에이전트가 layout_hints.image_descriptions로 생성 → 오케스트레이터가 final_content에 주입 → HTML Builder가 받음
+- Step 3 오케스트레이터 설계 시 결정
+
+### 7-3. 에이전트 간 데이터 흐름 명세 (Step 3 필수)
+- 각 prompt의 입출력 스키마는 정의되었으나, 오케스트레이터가 어느 필드를 어느 에이전트에 어떻게 잘라서 넘기는지 명세 누락
+- Step 3 Topic Newsroom / Content Newsroom 오케스트레이터 설계 시 명시 필요:
+  - Trend Scout 출력의 어느 필드가 Audience Analyst 입력으로 가는지 (현재 `trending_topics`만)
+  - Strategy Planner는 Trend Scout + Audience Analyst 출력을 어떻게 합쳐 받는지
+  - Strategy Planner.final_topic이 Writer.strategy로 들어갈 때 매핑 (category는 외부에서 별도 주입 또는 final_topic.category에서 추출)
+  - Editor.final_content + Format Architect 출력이 HTML Builder 입력으로 합쳐지는 방식
+- 권장: `backend/orchestrators/data_flow_spec.md` 또는 오케스트레이터 코드 상단 주석으로 명세화

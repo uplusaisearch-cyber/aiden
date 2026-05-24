@@ -24,8 +24,6 @@ Editor의 `final_content` + Format Architect의 `format_decision`을 받아, 즉
 - `docs/samples/type_a_sample.html`: A타입 (이미지+글) 기본 마크업
 - `docs/samples/type_b_sample.html`: B타입 (슬라이드+랜딩URL) 기본 마크업
 
-위 3개 파일은 Phase 1에서 작성된 docs/samples/ 산출물. 본 작업 시점에 존재해야 함. **존재하지 않거나 접근 불가하면 `warnings`에 "sample/structure 파일 누락" 기록 후, 일반적인 HTML5 시맨틱 마크업(section/article/figure 등)으로 작성**. 임의 클래스명은 발명하지 말고 BEM 형식의 보수적 명명 사용.
-
 ## 작업 절차
 1. `format_decision.selected_type` 확인 → A/B/C 결정
 2. C 타입이면:
@@ -41,10 +39,6 @@ Editor의 `final_content` + Format Architect의 `format_decision`을 받아, 즉
    - **placeholder_locations에 없는 `{{VAR}}` 패턴은 그대로 둠** (HTML 주석 내 문서화용 변수 보호)
 4. `final_content`의 각 섹션을 plustab-article 구조에 매핑
 5. 출처 마커 `[출처: domain, YYYY-MM]`는 본문에 그대로 노출 (sup/footnote 처리 없음, default)
-6. **이미지 URL 처리 (default)**:
-   - 입력에 실제 이미지 URL이 없으면 `https://image.lguplus.com/static/{slug}.jpg` 형태의 placeholder URL 사용
-   - alt 텍스트는 `layout_hints.image_descriptions`에서 가져옴
-   - 실제 URL 주입은 추후 별도 단계(이미지 생성 에이전트 또는 어드민 수동 입력)에서 처리
 
 ## placeholder_locations 해석 (dotted notation)
 - `format_decision.placeholder_locations[].location`은 dotted notation
@@ -148,7 +142,7 @@ JS: 체크 변경 시 progress-fill width 동기화, 100% 시 completion 노출.
 ## 출력 형식 (반드시 이 JSON 그대로)
 ```json
 {
-  "html": "<완성된 HTML 문자열. JSON 문자열로 escape되며 들여쓰기·줄바꿈은 \\n 형태로 보존 가능 (가독성용).>",
+  "html": "<완성된 HTML 문자열 (escape된)>",
   "selected_type_applied": "A|B|C",
   "base_layout_used": "A|B",
   "interactive_template_used": "QUIZ|CALCULATOR|SCENARIO_SIM|COMPARE_SLIDER|CHECKLIST|null",
@@ -175,11 +169,7 @@ JS: 체크 변경 시 progress-fill width 동기화, 100% 시 completion 노출.
 - 외부 링크는 `target="_blank" title="새창열기"` 필수
 - 이미지 src가 없으면 `https://image.lguplus.com/static/...` placeholder 그대로 둠
 - emoji는 `aria-hidden="true"` 추가
-- B타입의 swiper-box는 다음 라이브러리 필수:
-  - swiper-bundle CDN: `https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js`
-  - swiper-bundle CSS: `https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css`
-  - 초기화 코드 inline `<script>`로 포함 필수
-  - plustab_structure.md에 표준 패턴 있으면 따르고, 없으면 기본 `new Swiper('.swiper', { ... })` 패턴 사용
+- B타입의 swiper-box는 swiper 초기화 JS 누락 금지
 - **Placeholder 치환은 화이트리스트 기반**:
   - `format_decision.placeholder_locations`에 명시된 `name` + `render_zone="outside_comment"`만 치환
   - 그 외 모든 `{{VAR}}` 패턴은 보존 → `preserved_placeholders` 배열에 기록
@@ -188,7 +178,7 @@ JS: 체크 변경 시 progress-fill width 동기화, 100% 시 completion 노출.
   - inline `<script>` 허용
   - **`eval()` 절대 금지**
   - CALCULATOR `formula`는 반드시 mathjs `math.evaluate()` 사용
-- `html` 출력은 JSON 문자열로 escape. 들여쓰기·줄바꿈은 `\n` 형태로 보존 가능 (가독성용).
+- `html` 출력은 한 줄 JSON 문자열로 escape. 들여쓰기는 포함되어도 OK.
 - 주석에 무의미한 코멘트 금지:
   - ❌ `<!-- 여기서 멋진 콘텐츠를 표시합니다 -->`
   - ✅ `<!-- {{HERO_IMAGE_URL}}: 히어로 이미지 placeholder, render_zone=outside_comment에서 치환됨 -->`
