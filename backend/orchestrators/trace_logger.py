@@ -129,7 +129,26 @@ class TraceLogger:
         if agent_name == "strategy_planner":
             final = output_data.get("final_topic", {})
             return f"title: {final.get('title', '')}"
-        # 기타 에이전트는 Step 3-2/3-3에서 추가
+        if agent_name == "writer":
+            title = output_data.get("title", "")
+            sections = output_data.get("sections", [])
+            return f"draft v{output_data.get('draft_version', '?')}: '{title}' ({len(sections)} sections)"
+        if agent_name == "fact_checker":
+            score = output_data.get("confidence_score", "?")
+            log = output_data.get("verification_log", [])
+            verified = sum(1 for x in log if x.get("status") == "verified")
+            return f"confidence={score}, verified={verified}/{len(log)}"
+        if agent_name == "devils_advocate":
+            issues = output_data.get("critical_issues", [])
+            scores = output_data.get("scores", {})
+            avg = sum(scores.values()) / len(scores) if scores else 0
+            return f"{len(issues)} critiques, avg score={avg:.1f}, pass={output_data.get('pass_threshold', False)}"
+        if agent_name == "editor":
+            decision = output_data.get("decision", "?")
+            accepted = len(output_data.get("accepted_critiques", []))
+            rejected = len(output_data.get("rejected_critiques", []))
+            return f"decision={decision}, accepted={accepted}, rejected={rejected}"
+        # 기타 에이전트는 Step 3-3에서 추가
         return ""
 
     def write_metadata(

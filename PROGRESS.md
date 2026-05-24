@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-23 |
-| **전체 진행률** | **63.0%** (29/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (묶음 2 Step 3-1 완료 / Topic Newsroom + 트레이스 로깅 기반) |
+| **전체 진행률** | **69.6%** (32/46 항목 완료) |
+| **현재 Phase** | Phase 2 진행 중 (묶음 2 Step 3-2 완료 / Content Newsroom iter 1·2·3 토론) |
 
 ---
 
@@ -47,6 +47,9 @@
 - [x] base_newsroom.py: 미니 state-machine 베이스 _(2026-05-23)_
 - [x] topic_newsroom.py: Stage 1 오케스트레이터 _(2026-05-23)_
 - [x] test_topic_newsroom.py: 단위 테스트 7건 _(2026-05-23)_
+- [x] content_newsroom.py: Stage 2 오케스트레이터 (iter 1/2/3 토론) _(2026-05-23)_
+- [x] trace_logger.py: highlight 4종 추가 (Writer/FC/DA/Editor) _(2026-05-23)_
+- [x] test_content_newsroom.py: 단위 테스트 10건 _(2026-05-23)_
 - [ ] Topic Newsroom 오케스트레이터 (Stage 1)
 - [ ] Content Newsroom 오케스트레이터 (Stage 2, max 3 iter)
 - [ ] Game-ifier 오케스트레이터 (Stage 3)
@@ -119,6 +122,7 @@
 | 2026-05-23 | **묶음 2 Step 2/3 진입 전 미정사항 3건 NEXT_BUNDLE_NOTES §7로 정리**: 7-1 외부 CDN URL config화(Step 2 검토), 7-2 실제 이미지 URL 주입 시점(Step 3 검토), 7-3 에이전트 간 데이터 흐름 명세(Step 3 필수) | Step 2/3 진입 시 컨텍스트 손실 없이 의사결정 이어가기 위함 |
 | 2026-05-23 | **묶음 2 Step 2 완료: base_agent.py 일반화** — PromptLoader(`{{KEY_NAME}}` placeholder를 `backend/config/agent_resources.json` 매핑에서 자동 주입, file/inline source_type 지원, 매핑 없는 placeholder는 보존, 파일·JSON 오류는 경고+빈 매핑) + WhitelistedSubstitutor(Format Architect의 `placeholder_locations` + `render_zone="outside_comment"` 화이트리스트 기반 치환, HTML 주석 영역은 정규식 우회로 보존). 결정 A(CDN URL config화): `backend/config/cdn_urls.json` 분리 생성, prompt 직접 참조는 Step 3 또는 별도 패치. 결정 B(placeholder 일반화): TONE_REFERENCE 외 확장 가능 구조. 단위 테스트 9건 통과(PromptLoader 5 + WhitelistedSubstitutor 4). 기존 `Agent` 클래스도 PromptLoader 경유로 치환 적용. | 묶음 1 §6 결정사항(화이트리스트 치환·주석 보호)과 Writer의 `{{TONE_REFERENCE}}` 주입을 단일 메커니즘으로 통합. 이후 placeholder 신규는 config json 한 곳에만 등록 |
 | 2026-05-23 | **묶음 2 Step 3-1 완료: Topic Newsroom 오케스트레이터 + 트레이스 로깅 기반 구축**. 설계 결정 4건 확정: (1) 이미지 URL은 placeholder 그대로(별도 생성 에이전트 없음, MVP) (2) 오케스트레이터는 자체 mini-state-machine 클래스(BaseNewsroom 상속 구조) (3) 트레이스 로그는 단계별 JSON + summary.jsonl + metadata.json(`runs/{ts}_{run_id}/` 구조) (4) Step 3 분할 3-1/3-2/3-3. `docs/architecture/data_flow_spec.md` 신규(9 에이전트 입출력 매핑 + Stage 1↔2↔3 핸드오프 규칙 + 에러 처리 원칙). TraceLogger(agent별 highlight 추출 — Step 3-1은 Scout/Analyst/Planner 3종, Step 3-2/3-3에서 나머지 6종 추가 예정). BaseNewsroom(`_execute_agent`로 트레이스+재시도+에러 처리 캡슐화, 오케스트레이터는 절대 raise 안 함). TopicNewsroom(Stage 1 단방향, summary/search_queries_used 의도적 제외, target_date 미전달 시 오늘 date.today()). 단위 테스트 7건 통과(happy path, trace 생성, 입력 매핑 2건, scout 실패, target_date default, 예외 캡처). | data_flow_spec.md 로 §7-3 데이터 흐름 명세 해소. §7-2 이미지 URL은 placeholder URL default 유지 결정. 묶음 1·2 Step 1·2 산출물(prompts + PromptLoader + WhitelistedSubstitutor) 위에 Stage 1 풀스택 동작 가능 |
+| 2026-05-23 | **묶음 2 Step 3-2 완료: Content Newsroom 오케스트레이터 (iter 1/2/3 토론)**. 설계 결정 3건 확정: (1) 종료 출력은 Editor 전체 (final_content는 호출자가 추출) (2) 에이전트 실패 시 강제 approved — partial 결과 + trace fail 명시 + `_orchestrator_forced` 플래그 (3) Fact-Checker는 매 iter 재실행 (Editor confidence_score 트리거 정확도 우선). 종료 조건 3가지: (a) editor.decision==approved 즉시 (b) iter 3 도달 시 강제 종료(needs_revision이어도 `_coerce_approved_at_iter3`로 approved + known_weaknesses 보강) (c) 에이전트 실패 시 `_force_approve`. iter 2+ Writer 입력에 previous_draft/factcheck_log/critique/editor_instructions, DA 입력에 previous_critiques/editor_response 조립 (data_flow_spec §4-2 그대로). TraceLogger highlight 확장: Writer(draft v + 섹션 수), FC(confidence + verified 비율), DA(critique 수 + 평균 score + pass), Editor(decision + accepted/rejected 수). 단위 테스트 10건 통과(happy 2 + force termination 1 + agent failure 2 + input assembly 3 + trace 2). 전체 회귀 26건 통과(base_agent 9 + topic_newsroom 7 + content_newsroom 10). | Stage 2 풀스택 동작 가능. Step 3-3(Game-ifier + 전체 통합) 진입 준비 완료 |
 
 ---
 
