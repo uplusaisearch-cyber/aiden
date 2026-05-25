@@ -6,7 +6,7 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-25 |
-| **전체 진행률** | **90.0%** (45/50 항목 완료) |
+| **전체 진행률** | **97.8%** (45/46 항목 완료) |
 | **현재 Phase** | Phase 2 거의 완료 (묶음 3 Step 1 완료 / P2 R3 fact_checker iter3 패치 + 재현성 E2E 3회 모두 PASS / 묶음 3 잔여: 우선순위 3 Judge Panel · 우선순위 4 어드민 UI) |
 
 ---
@@ -64,10 +64,6 @@
 - [x] 묶음 3 Step 1 우선순위 2: 재현성 E2E 3회 (맛집·안전·AI트렌드, 모두 PASS) _(2026-05-25)_
 - [ ] 묶음 3 우선순위 3: Judge Panel 오케스트레이터 (Stage 4)
 - [ ] 묶음 3 우선순위 4: 어드민 UI (system prompt 편집기)
-- [ ] Topic Newsroom 오케스트레이터 (Stage 1)
-- [ ] Content Newsroom 오케스트레이터 (Stage 2, max 3 iter)
-- [ ] Game-ifier 오케스트레이터 (Stage 3)
-- [ ] Judge Panel 오케스트레이터 (Stage 4)
 - [ ] 콘솔 end-to-end 통합 테스트
 
 ---

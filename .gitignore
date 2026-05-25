@@ -27,6 +27,9 @@ node_modules/
 *.log
 logs/
 
+# --- AIDEN 실행 트레이스 ---
+runs/
+
 # --- 비용 트래커 캐시 (일일 누적 등) ---
 .cache/
 
