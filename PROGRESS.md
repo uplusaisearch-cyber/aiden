@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-05-23 |
-| **전체 진행률** | **69.6%** (32/46 항목 완료) |
-| **현재 Phase** | Phase 2 진행 중 (묶음 2 Step 3-2 완료 / Content Newsroom iter 1·2·3 토론) |
+| **마지막 업데이트** | 2026-05-25 |
+| **전체 진행률** | **93.5%** (43/46 항목 완료) |
+| **현재 Phase** | Phase 2 거의 완료 (묶음 2 Step 3-3 완료 / 9 에이전트 E2E 1회 완주, 발표용 메타 산출물 1호 확보) |
 
 ---
 
@@ -50,6 +50,16 @@
 - [x] content_newsroom.py: Stage 2 오케스트레이터 (iter 1/2/3 토론) _(2026-05-23)_
 - [x] trace_logger.py: highlight 4종 추가 (Writer/FC/DA/Editor) _(2026-05-23)_
 - [x] test_content_newsroom.py: 단위 테스트 10건 _(2026-05-23)_
+- [x] Step 2.5: gemini_client.py + concrete_agents.py + 실행 스크립트 2종 _(2026-05-25)_
+- [x] Step 2.5: Topic Newsroom 실제 LLM 1회 실행 _(2026-05-25, 재시도)_
+- [x] Step 2.5: Content Newsroom 실제 LLM 1회 실행 (iter 1→2→3 approved) _(2026-05-25, 재시도)_
+- [x] Step 2.5: early_integration_report.md 초안 + 재시도 결과 _(2026-05-25)_
+- [x] Gameifier 오케스트레이터 (Stage 3) _(2026-05-25)_
+- [x] FullPipeline 통합 (3 Newsroom) _(2026-05-25)_
+- [x] run_full_pipeline.py E2E 스크립트 + HTML 래퍼 _(2026-05-25)_
+- [x] test_gameifier.py + test_full_pipeline.py 통합 테스트 _(2026-05-25)_
+- [x] 9 에이전트 실제 LLM E2E 완주 + final_output.html _(2026-05-25)_
+- [x] data_flow_spec.md §6 Stage 3 보강 _(2026-05-25)_
 - [ ] Topic Newsroom 오케스트레이터 (Stage 1)
 - [ ] Content Newsroom 오케스트레이터 (Stage 2, max 3 iter)
 - [ ] Game-ifier 오케스트레이터 (Stage 3)
@@ -123,6 +133,9 @@
 | 2026-05-23 | **묶음 2 Step 2 완료: base_agent.py 일반화** — PromptLoader(`{{KEY_NAME}}` placeholder를 `backend/config/agent_resources.json` 매핑에서 자동 주입, file/inline source_type 지원, 매핑 없는 placeholder는 보존, 파일·JSON 오류는 경고+빈 매핑) + WhitelistedSubstitutor(Format Architect의 `placeholder_locations` + `render_zone="outside_comment"` 화이트리스트 기반 치환, HTML 주석 영역은 정규식 우회로 보존). 결정 A(CDN URL config화): `backend/config/cdn_urls.json` 분리 생성, prompt 직접 참조는 Step 3 또는 별도 패치. 결정 B(placeholder 일반화): TONE_REFERENCE 외 확장 가능 구조. 단위 테스트 9건 통과(PromptLoader 5 + WhitelistedSubstitutor 4). 기존 `Agent` 클래스도 PromptLoader 경유로 치환 적용. | 묶음 1 §6 결정사항(화이트리스트 치환·주석 보호)과 Writer의 `{{TONE_REFERENCE}}` 주입을 단일 메커니즘으로 통합. 이후 placeholder 신규는 config json 한 곳에만 등록 |
 | 2026-05-23 | **묶음 2 Step 3-1 완료: Topic Newsroom 오케스트레이터 + 트레이스 로깅 기반 구축**. 설계 결정 4건 확정: (1) 이미지 URL은 placeholder 그대로(별도 생성 에이전트 없음, MVP) (2) 오케스트레이터는 자체 mini-state-machine 클래스(BaseNewsroom 상속 구조) (3) 트레이스 로그는 단계별 JSON + summary.jsonl + metadata.json(`runs/{ts}_{run_id}/` 구조) (4) Step 3 분할 3-1/3-2/3-3. `docs/architecture/data_flow_spec.md` 신규(9 에이전트 입출력 매핑 + Stage 1↔2↔3 핸드오프 규칙 + 에러 처리 원칙). TraceLogger(agent별 highlight 추출 — Step 3-1은 Scout/Analyst/Planner 3종, Step 3-2/3-3에서 나머지 6종 추가 예정). BaseNewsroom(`_execute_agent`로 트레이스+재시도+에러 처리 캡슐화, 오케스트레이터는 절대 raise 안 함). TopicNewsroom(Stage 1 단방향, summary/search_queries_used 의도적 제외, target_date 미전달 시 오늘 date.today()). 단위 테스트 7건 통과(happy path, trace 생성, 입력 매핑 2건, scout 실패, target_date default, 예외 캡처). | data_flow_spec.md 로 §7-3 데이터 흐름 명세 해소. §7-2 이미지 URL은 placeholder URL default 유지 결정. 묶음 1·2 Step 1·2 산출물(prompts + PromptLoader + WhitelistedSubstitutor) 위에 Stage 1 풀스택 동작 가능 |
 | 2026-05-23 | **묶음 2 Step 3-2 완료: Content Newsroom 오케스트레이터 (iter 1/2/3 토론)**. 설계 결정 3건 확정: (1) 종료 출력은 Editor 전체 (final_content는 호출자가 추출) (2) 에이전트 실패 시 강제 approved — partial 결과 + trace fail 명시 + `_orchestrator_forced` 플래그 (3) Fact-Checker는 매 iter 재실행 (Editor confidence_score 트리거 정확도 우선). 종료 조건 3가지: (a) editor.decision==approved 즉시 (b) iter 3 도달 시 강제 종료(needs_revision이어도 `_coerce_approved_at_iter3`로 approved + known_weaknesses 보강) (c) 에이전트 실패 시 `_force_approve`. iter 2+ Writer 입력에 previous_draft/factcheck_log/critique/editor_instructions, DA 입력에 previous_critiques/editor_response 조립 (data_flow_spec §4-2 그대로). TraceLogger highlight 확장: Writer(draft v + 섹션 수), FC(confidence + verified 비율), DA(critique 수 + 평균 score + pass), Editor(decision + accepted/rejected 수). 단위 테스트 10건 통과(happy 2 + force termination 1 + agent failure 2 + input assembly 3 + trace 2). 전체 회귀 26건 통과(base_agent 9 + topic_newsroom 7 + content_newsroom 10). | Stage 2 풀스택 동작 가능. Step 3-3(Game-ifier + 전체 통합) 진입 준비 완료 |
+| 2026-05-25 | **묶음 2 Step 2.5 부분 완료 (P0 차단 발견)**: 코드 5종 생성(gemini_client + concrete_agents + scripts 2종 + early_integration_report). 실제 Gemini 호출 4회 시도, 모두 Trend Scout 단계에서 실패. **발견된 P0 차단 3건**: (1) 명세서 default 모델 `gemini-2.0-flash` 가 신규 사용자에게 404 (deprecated) (2) `google-generativeai` 패키지 자체가 deprecated (FutureWarning, "google-genai 로 마이그레이션 권고") (3) Gemini 2.5 의 grounding (`google_search`) tool 을 deprecated 라이브러리에서 호출 불가 — 4가지 형식 모두 거부됨(`google_search_retrieval` 문자열·`google_search` 문자열·dict form·protos). **사용자 지시 준수**: Topic 실패해도 Content 강제 진행 안 함 → Content Newsroom 미실행. 비용 ~$0 (generation 도달 전 실패). 오케스트레이터 graceful degrade 동작은 의도대로 검증됨(`_force_approve` 경로 정상). | Step 2.5 의 의도(통합 이슈 조기 발견) 달성. 권장 후속: `google-genai` 신규 패키지로 `gemini_client.py` 재작성. Step 3-3 진입 전 사용자 결정 필요(방안 A 마이그레이션 / B grounding 비활성 보조 검증 / C v2 로 보류). 상세는 docs/early_integration_report.md |
+| 2026-05-25 | **묶음 2 Step 2.5 재시도 완료 (방안 A 채택, 모든 P0 해소)**: 패키지 `google-generativeai 0.8.6` → `google-genai 2.6.0` 마이그레이션. `gemini_client.py` 전체 재작성(`genai.Client(...).models.generate_content(...)` 신규 SDK 패턴 + `types.Tool(google_search=types.GoogleSearch())` grounding + `_extract_text()` candidates fallback). 모델 default `gemini-2.5-flash`로 변경(client 상수 + 스크립트 양쪽). **Grounding + JSON 충돌 해결 = 옵션 B**: grounding 사용 시 `response_mime_type` 미사용 + `JSON_FORCE_SUFFIX` 로 prompt 기반 JSON 강제. **실행 결과**: Topic Newsroom completed(run `2026-05-25T05-52-32_4c4f0b29`, 3 호출, 한글 출력 보존, final_topic.title="편의점 신상 디저트, 우리 가족 최애템 TOP5"). Content Newsroom completed(run `2026-05-25T05-53-50_7eba2b37`, iter 1→2→3 approved, Editor 자체 approved=orchestrator coerce 미발생, DA critique 5→3→1·pass False→False→True 라운드별 차등 실측 검증, 503 1회→retry 정상 흡수). 총 16 API 호출 ~$0.005-0.015. **일관성 체크리스트 전 항목 통과**(trending_topics 3개·verdict.top_choice 매칭·final_topic 키 누락 없음·Writer fact_claims·FC `[출처:]` 마커·DA critical_issues=5·pass_threshold bool·Editor decision enum). **신규 P0 차단 0건**, P2 관찰 1건(FC iter3 verification_log 비어있음 — Writer iter3에서 fact_claims 제거됐을 가능성), P3 정보 1건(503 retry로 흡수). **학습**: SDK·모델·API 표면처럼 빠르게 변하는 부분은 명세서 작성 시 최신 docs 확인 필수. 조기 통합으로 Step 3-3 진입 전 통합 위험 제거. | Step 3-3(Game-ifier + 전체 통합) 진입 가능. P2 관찰 1건은 prompt 패치 차원에서 별도 검토 (차단 아님) |
+| 2026-05-25 | **묶음 2 Step 3-3 완료: Game-ifier + FullPipeline + 9 에이전트 E2E 완주**. 설계 결정 3건: (1) 통합 범위 CLI 만 (FastAPI/UI 는 묶음 3) (2) 실제 LLM E2E 전체 9 에이전트 실행 (발표용 메타 산출물 1호 확보) (3) HTML 검증은 브라우저 (final_output.html 스탠드얼론 래퍼). **Gameifier**: Format Architect → HTML Builder 단방향, 실패 시 `_fallback_html`(Editor.final_content 를 plain HTML 변환 + known_weaknesses 노출). **FullPipeline**: 단일 TraceLogger 로 3 Newsroom 통합, base_order 자동 분배(1-3 / 4-7 iter suffix / 8-9). **단위 테스트 10건 추가** (gameifier 6 + full_pipeline 4) — 전체 회귀 **36건 통과** (명세서 표기 37건은 카운트 오차, 실제 36건). **실제 LLM E2E 1회 완주** (run `2026-05-25T06-16-20_1bc88d21`, 카테고리 맛집): status=completed, 17 trace 파일, duration 372초, 18 호출(1× 503 retry 흡수), Stage 2 iter 3 자체 approved(orchestrator coerce 미발생, DA 5→3→1·pass False→False→True), **Format Architect 가 CALCULATOR 인터랙티브 자체 선택**(type=C, base=A), HTML Builder 3 subs·0 preserved·0 warnings. final_output.html 6664 bytes: mathjs CDN·data-input-id·plustab-interactive 모두 존재, `[출처:]` inline 마커 5개, 한국어 보존, charset utf-8. **최종 제목**: "가족 식비, 매달 50만원 아끼는 법". 신규 P0/P1 0건, P2 1건(FC iter 3 verification_log=[] 패턴 재발), P3 1건(503 retry 흡수). | 9 에이전트 실제 LLM 통합 첫 완주. **발표용 메타 산출물 1호** = `runs/2026-05-25T06-16-20_1bc88d21/` 전체. 묶음 3(FastAPI + Next.js UI) 진입 가능. 잔여 Phase 2 항목: Judge Panel + 콘솔 e2e 통합 테스트 |
 
 ---
 
@@ -131,3 +144,5 @@
 > 발견 시 `발견일 · 항목 · 영향도(낮음/중간/높음) · 대응안` 형식으로 추가.
 
 - **HTML Builder placeholder 주석 내부 치환 위험 (해결책 확정)** — base_agent 치환을 Format Architect 의 `placeholder_locations` 화이트리스트 기반으로 구현하기로 결정. 매핑 외 `{{VAR}}` 는 무시. 묶음 2 base_agent.py 구현 시 적용. 상세는 `docs/NEXT_BUNDLE_NOTES.md` §6.
+- **2026-05-25 · gemini_client.py 가 deprecated 라이브러리(`google-generativeai`)·deprecated 모델(`gemini-2.0-flash`) 사용 · 영향도 높음 · ✅ 해소(2026-05-25 재시도)** — Step 2.5 첫 시도 시 Trend Scout 호출 자체 실패. `google-genai 2.6.0` + `gemini-2.5-flash` 마이그레이션으로 모든 P0 해소. Topic·Content Newsroom 실제 동작 확인. 상세는 `docs/early_integration_report.md` 재시도 섹션.
+- **2026-05-25 · FC iter 3 verification_log 비어있음 · 영향도 낮음(P2 관찰)** — Step 2.5 재시도 실측: Writer iter 3 출력에 fact_claims 없거나 FC 가 검증할 게 없다고 판단. confidence=10/verified=0/0. 차단 아님(이미 approved 도달). Writer prompt 에 "iter N+ 에서도 fact_claims 유지" 점검 필요. 별도 검토.

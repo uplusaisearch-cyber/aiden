@@ -125,7 +125,7 @@ da_input_iter2 = {
 format_architect_input = editor_output["final_content"]
 ```
 
-## 6. Stage 3: Game-ifier (Step 3-3에서 상세)
+## 6. Stage 3: Game-ifier
 
 ### 6-1. Format Architect
 - **입력**: `editor_output["final_content"]`
@@ -139,7 +139,17 @@ format_architect_input = editor_output["final_content"]
       "format_decision": format_architect_output
   }
   ```
-- **출력의 `html`이 최종 산출물**
+- **출력**: html(문자열) + meta(placeholder_substitutions, preserved_placeholders, warnings)
+
+### 6-3. Gameifier 오케스트레이터
+- 두 에이전트 단방향. iter 없음.
+- 에이전트 실패 시 fallback: Editor.final_content를 plain HTML로 변환 (`_orchestrator_fallback` 플래그)
+- fallback HTML도 `known_weaknesses` 섹션 포함 (투명성)
+
+### 6-4. FullPipeline 통합
+- 3 Newsroom을 단일 TraceLogger로 묶어 실행
+- base_order 자동 분배: Topic 1-3, Content 4-7 (iter별 suffix), Game-ifier 8-9
+- 최종 HTML은 `runs/<run_id>/final_output.html`로 저장 (스크립트가 처리, 오케스트레이터는 dict만 반환)
 
 ## 7. 트레이스 로그 구조
 

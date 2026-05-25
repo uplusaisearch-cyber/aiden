@@ -148,7 +148,17 @@ class TraceLogger:
             accepted = len(output_data.get("accepted_critiques", []))
             rejected = len(output_data.get("rejected_critiques", []))
             return f"decision={decision}, accepted={accepted}, rejected={rejected}"
-        # 기타 에이전트는 Step 3-3에서 추가
+        if agent_name == "format_architect":
+            stype = output_data.get("selected_type", "?")
+            base = output_data.get("base_layout", "-")
+            interactive = output_data.get("interactive", {}).get("template", "none")
+            return f"type={stype}, base={base}, interactive={interactive}"
+        if agent_name == "html_builder":
+            stype = output_data.get("selected_type_applied", "?")
+            subs = len(output_data.get("placeholder_substitutions", []))
+            preserved = len(output_data.get("preserved_placeholders", []))
+            warns = len(output_data.get("warnings", []))
+            return f"type={stype}, subs={subs}, preserved={preserved}, warnings={warns}"
         return ""
 
     def write_metadata(
