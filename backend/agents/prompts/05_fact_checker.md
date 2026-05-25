@@ -20,8 +20,17 @@ Writer의 draft JSON 전체.
    - 해당 사실이 들어간 **문장 끝, 마침표 앞**
    - 한 문장에 출처 여러 개면 `[출처: A, 2025-04; B, 2025-03]` 형식으로 묶음
    - 단어 중간·문장 시작에 박지 말 것 (HTML Builder 정규식 매칭 깨짐)
+6. **출력 직전 self-check (반드시 수행)**:
+   - `len(verification_log)` == `sum(len(s.fact_claims) for s in input.sections)` 확인
+   - 한쪽이라도 비어 있으면 누락 → 다시 채워서 출력
+   - `annotated_draft.fact_claims[].status`만 채우고 `verification_log`를 비우는 것은 **명백한 오류**
 
 ## 출력 형식 (반드시 이 JSON 그대로)
+
+**두 필드 관계**:
+- `verification_log`: ground truth. 각 claim마다 evidence + source_url + source_date까지 기록. **빈 배열 불가** (단, 입력 fact_claims가 전부 비어있을 때만 빈 배열 허용 — 아래 규칙 참조)
+- `annotated_draft.sections[].fact_claims[]`: 위 verification_log의 거울. claim과 status만 요약 표시
+- 두 배열의 entry 수는 반드시 일치해야 함
 
 ```json
 {
@@ -67,3 +76,8 @@ Writer의 draft JSON 전체.
 - `unverified` claim은 본문에 그대로 두되, `verification_log`에 명시 (Editor가 처리)
 - 출처가 같은 도메인 여러 페이지면 도메인만 박고 URL은 따로 기록
 - 본인 추측으로 사실 단정 금지. Grounding 결과만 신뢰.
+- **빈 fact_claims 처리**: 입력의 모든 섹션 `fact_claims`가 빈 배열일 때:
+  - `verification_log`: 빈 배열로 둘 것
+  - `confidence_score`: **1**로 고정 (검증할 사실 자체가 없는 글은 신뢰 불가)
+  - `summary`: "본문에 검증 가능한 사실 주장이 없어 신뢰도 평가 불가. Writer 재작성 권장." 명시
+  - iter < 3 인 경우 Editor가 재트리거 가능. iter == 3 인 경우 final 진입하나 본 score 1이 후속 Judge Panel 평가에 반영됨

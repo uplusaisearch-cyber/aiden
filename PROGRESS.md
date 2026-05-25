@@ -6,8 +6,8 @@
 | 항목 | 값 |
 |---|---|
 | **마지막 업데이트** | 2026-05-25 |
-| **전체 진행률** | **93.5%** (43/46 항목 완료) |
-| **현재 Phase** | Phase 2 거의 완료 (묶음 2 Step 3-3 완료 / 9 에이전트 E2E 1회 완주, 발표용 메타 산출물 1호 확보) |
+| **전체 진행률** | **90.0%** (45/50 항목 완료) |
+| **현재 Phase** | Phase 2 거의 완료 (묶음 3 Step 1 완료 / P2 R3 fact_checker iter3 패치 + 재현성 E2E 3회 모두 PASS / 묶음 3 잔여: 우선순위 3 Judge Panel · 우선순위 4 어드민 UI) |
 
 ---
 
@@ -60,6 +60,10 @@
 - [x] test_gameifier.py + test_full_pipeline.py 통합 테스트 _(2026-05-25)_
 - [x] 9 에이전트 실제 LLM E2E 완주 + final_output.html _(2026-05-25)_
 - [x] data_flow_spec.md §6 Stage 3 보강 _(2026-05-25)_
+- [x] 묶음 3 Step 1 우선순위 1: P2 R3 fact_checker iter3 verification_log 누락 수정 _(2026-05-25)_
+- [x] 묶음 3 Step 1 우선순위 2: 재현성 E2E 3회 (맛집·안전·AI트렌드, 모두 PASS) _(2026-05-25)_
+- [ ] 묶음 3 우선순위 3: Judge Panel 오케스트레이터 (Stage 4)
+- [ ] 묶음 3 우선순위 4: 어드민 UI (system prompt 편집기)
 - [ ] Topic Newsroom 오케스트레이터 (Stage 1)
 - [ ] Content Newsroom 오케스트레이터 (Stage 2, max 3 iter)
 - [ ] Game-ifier 오케스트레이터 (Stage 3)
@@ -146,3 +150,4 @@
 - **HTML Builder placeholder 주석 내부 치환 위험 (해결책 확정)** — base_agent 치환을 Format Architect 의 `placeholder_locations` 화이트리스트 기반으로 구현하기로 결정. 매핑 외 `{{VAR}}` 는 무시. 묶음 2 base_agent.py 구현 시 적용. 상세는 `docs/NEXT_BUNDLE_NOTES.md` §6.
 - **2026-05-25 · gemini_client.py 가 deprecated 라이브러리(`google-generativeai`)·deprecated 모델(`gemini-2.0-flash`) 사용 · 영향도 높음 · ✅ 해소(2026-05-25 재시도)** — Step 2.5 첫 시도 시 Trend Scout 호출 자체 실패. `google-genai 2.6.0` + `gemini-2.5-flash` 마이그레이션으로 모든 P0 해소. Topic·Content Newsroom 실제 동작 확인. 상세는 `docs/early_integration_report.md` 재시도 섹션.
 - **2026-05-25 · FC iter 3 verification_log 비어있음 · 영향도 낮음(P2 관찰)** — Step 2.5 재시도 실측: Writer iter 3 출력에 fact_claims 없거나 FC 가 검증할 게 없다고 판단. confidence=10/verified=0/0. 차단 아님(이미 approved 도달). Writer prompt 에 "iter N+ 에서도 fact_claims 유지" 점검 필요. 별도 검토.
+- **2026-05-25 · 묶음 3 Step 1 완료 시점 신규 누적 이슈 4건 (#W-fc-empty, #docs-path-mismatch, #windows-tmp-path, #da-iter3-regression) · 영향도 혼합** — 상세는 `docs/issues/2026-05-25_open_issues.md` 참조.
