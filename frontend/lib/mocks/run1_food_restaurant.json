@@ -1,0 +1,153 @@
+{
+  "stage": 4,
+  "input_source": "final_output.html",
+  "input_size_bytes": 5875,
+  "models_used": {
+    "gemini": "gemini-2.5-pro",
+    "gpt": "gpt-5",
+    "claude": "claude-opus-4-7"
+  },
+  "models_resolution_source": {
+    "gemini": "config",
+    "gpt": "config",
+    "claude": "config"
+  },
+  "evaluations": {
+    "gemini": {
+      "model": "gemini-1.5-pro",
+      "scores": {
+        "topic_fit": 8,
+        "content_quality": 7,
+        "interactivity": 1,
+        "tone_authenticity": 6,
+        "timeliness_trust": 4
+      },
+      "comments": {
+        "topic_fit": "가족 외식이라는 구체적인 페르소나와 '가성비', '가심비'라는 키워드를 연남동이라는 트렌디한 장소와 잘 결합하여 플러스탭 사용자들의 흥미를 유발하기에 적합합니다.",
+        "content_quality": "세 곳의 식당을 이탈리안, 한식, 베이커리/피자로 다양하게 구성하여 논리적 흐름이 좋습니다. 다만 주소, 가격대, 영업시간 등 실제 방문에 필요한 핵심 정보가 없어 실용성이 다소 떨어집니다.",
+        "interactivity": "본문의 주제를 강화하거나 사용자의 참여를 유도하는 인터랙티브 요소가 전혀 없습니다. 지도, 체크리스트, 혹은 간단한 취향 테스트 같은 요소를 추가했다면 훨씬 좋은 콘텐츠가 되었을 것입니다.",
+        "tone_authenticity": "친근하고 캐주얼한 톤을 잘 유지하고 있습니다. 하지만 '깊은 바다 향을 선사합니다', '만족감을 제공하여' 등 다소 상투적인 표현이 사용되어 사람이 직접 쓴 글 특유의 생생함은 부족합니다.",
+        "timeliness_trust": "소개된 식당이 실제 존재하는지 확인할 수 있는 출처나 링크가 전혀 없어 신뢰도를 확보하기 어렵습니다. 맛집 정보의 핵심인 검증 가능성이 부재한 점이 가장 큰 약점입니다."
+      },
+      "overall_score": 5.2,
+      "strengths": [
+        "가족 단위 사용자에게 매우 매력적인 주제와 구성",
+        "안정적이고 읽기 쉬운 글의 구조와 문체"
+      ],
+      "weaknesses": [
+        "콘텐츠의 신뢰도를 담보할 출처나 외부 링크 전무",
+        "사용자 참여를 유도할 인터랙티브 기능의 완전한 부재"
+      ],
+      "one_line_verdict": "주제는 흥미로우나, 신뢰도와 상호작용 부재가 아쉬운 콘텐츠."
+    },
+    "gpt": {
+      "model": "gpt-5",
+      "scores": {
+        "topic_fit": 8,
+        "content_quality": 6,
+        "interactivity": 2,
+        "tone_authenticity": 7,
+        "timeliness_trust": 4
+      },
+      "comments": {
+        "topic_fit": "가족 외식 페르소나를 겨냥해 연남동 골목 맛집 3곳을 소개하며 가성비·가심비 포인트를 강조해 적합합니다.",
+        "content_quality": "메뉴·분위기 묘사는 구체적이지만 주소, 가격대, 운영시간, 예약/대기, 유아 의자·주차 등 실용 정보가 부족합니다. 세 곳의 차별화 포인트 정리도 더 명확하면 좋겠습니다.",
+        "interactivity": "지도/전화걸기/예약·메뉴판 링크, 가격표, 체크리스트 등 인터랙션이 없고 CTA도 작동 링크가 없어 주제 강화에 기여하지 못합니다.",
+        "tone_authenticity": "따뜻한 매거진형 서술로 자연스럽지만 홍보성 수사와 상투적 표현이 반복되고, 개인적 경험담·현장감은 아쉽습니다.",
+        "timeliness_trust": "출처, 방문일, 업데이트 날짜 미기재로 최신성 검증이 어렵고 매장 공식 링크나 참고 근거가 없어 신뢰도가 제한됩니다."
+      },
+      "overall_score": 5.4,
+      "strengths": [
+        "가족 단위 독자를 겨냥한 명확한 콘셉트와 따뜻한 톤",
+        "시그니처 메뉴·공간 분위기 등 감성적 묘사"
+      ],
+      "weaknesses": [
+        "주소·가격·운영시간·예약 등 핵심 실용 정보 부재",
+        "지도/링크 등 인터랙티브 요소 미비로 활용성 낮음"
+      ],
+      "one_line_verdict": "가족 취향 저격이지만 실용 정보·링크가 비어있다"
+    },
+    "claude": {
+      "model": "claude-opus-4-7",
+      "scores": {
+        "topic_fit": 7,
+        "content_quality": 4,
+        "interactivity": 1,
+        "tone_authenticity": 4,
+        "timeliness_trust": 3
+      },
+      "comments": {
+        "topic_fit": "연남동 가족 외식이라는 주제는 페르소나에 부합하나, 가족 단위에게 중요한 주차·예약·아이의자 등 실용 정보가 빠져 적합성이 절반만 채워졌습니다.",
+        "content_quality": "가게 3곳의 주소·영업시간·가격대·메뉴별 가격 등 핵심 정보가 전무하고, 묘사가 '신선한 재료', '정갈한', '깊은 풍미' 같은 일반론으로만 채워져 실용성이 낮습니다.",
+        "interactivity": "퀴즈·체크리스트·지도·예약 링크 등 어떠한 인터랙티브 요소도 없고 CTA 버튼 하나가 전부입니다.",
+        "tone_authenticity": "'두 마리 토끼를 잡다', '안성맞춤', '향연', '가성비와 가심비 모두 잡는' 등 전형적 LLM·블로그 상투구가 반복되며, '~선사합니다', '~제공하여' 같은 번역체 어미가 캐주얼 톤과 어긋납니다.",
+        "timeliness_trust": "가게 실재 여부를 확인할 만한 정보(주소, 출처, 방문 시점)가 전혀 없어 가공된 정보일 가능성을 배제하기 어렵고 신뢰도가 떨어집니다."
+      },
+      "overall_score": 3.8,
+      "strengths": [
+        "주제 선정과 페르소나 타깃팅은 명확함",
+        "3개 섹션 구조가 깔끔하게 정리됨"
+      ],
+      "weaknesses": [
+        "주소·가격 등 실용 정보 부재로 맛집 글의 기본을 충족하지 못함",
+        "LLM 상투구와 번역체가 곳곳에 노출되어 사람이 쓴 글다움이 약함"
+      ],
+      "one_line_verdict": "구조는 갖췄으나 실제 정보가 비어있는 '느낌만의 맛집글'."
+    }
+  },
+  "failed_models": [],
+  "duration_ms": 30405,
+  "cost_usd_estimate": 0.1375,
+  "aggregate": {
+    "mean_scores": {
+      "topic_fit": 7.67,
+      "content_quality": 5.67,
+      "interactivity": 1.33,
+      "tone_authenticity": 5.67,
+      "timeliness_trust": 3.67
+    },
+    "stdev_scores": {
+      "topic_fit": 0.47,
+      "content_quality": 1.25,
+      "interactivity": 0.47,
+      "tone_authenticity": 1.25,
+      "timeliness_trust": 0.47
+    },
+    "weighted_total": 50.2,
+    "outliers": [
+      {
+        "dimension": "content_quality",
+        "model": "gemini",
+        "score": 7,
+        "mean": 5.67,
+        "delta": 1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "content_quality",
+        "model": "claude",
+        "score": 4,
+        "mean": 5.67,
+        "delta": -1.67,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "tone_authenticity",
+        "model": "gpt",
+        "score": 7,
+        "mean": 5.67,
+        "delta": 1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "tone_authenticity",
+        "model": "claude",
+        "score": 4,
+        "mean": 5.67,
+        "delta": -1.67,
+        "outlier_severity": "medium"
+      }
+    ]
+  },
+  "status": "completed"
+}
