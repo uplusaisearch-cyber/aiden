@@ -67,6 +67,51 @@
 
 ---
 
+## #judge-env-key-mismatch — Settings 와 GeminiClient 의 API 키 환경변수 이름 불일치
+
+- **발견**: B3-S2-E2E 실행 시점 (2026-05-26)
+- **현상**: `backend/core/settings.py` 의 `gemini_api_key` 필드는 `GEMINI_API_KEY` 환경변수를 읽지만, 기존 `GeminiClient` 는 `GOOGLE_AI_STUDIO_API_KEY` 를 직접 읽음. 두 키 이름이 불일치해 JudgePanel `from_settings()` 초기화 단계에서 ValidationError 발생
+- **우회**: `.env` 에 같은 값을 두 키로 중복 등록하여 임시 해결
+- **처리 방향 후보**:
+  - A. `settings.py` 가 두 키 모두 허용하도록 alias 추가
+  - B. `GeminiClient` + `Settings` 의 키 이름을 한쪽으로 통일
+- **우선순위**: 마감 후
+
+---
+
+## #judge-cost-realdata — judge_panel.cost_usd_estimate 단가표·토큰 추정 보정 필요
+
+- **발견**: B3-S2-E2E Run 1·2·3 (2026-05-26)
+- **현상**: `judge_panel.cost_usd_estimate` 가 명세서 추정 ($0.032/run) 의 약 4배 ($0.1375/run). 원인은 `_TOKEN_ESTIMATE = {input: 2000, output: 1000}` 가정 + Claude Opus 4.7 단가 ($15/$75 per 1M) 가 명세서 표와 차이가 있어서. 실제 청구액과의 격차 가능성
+- **처리 방향**: 실제 billing 데이터로 `_JUDGE_PRICE_TABLE` 단가 테이블 + `_TOKEN_ESTIMATE` 토큰 추정치 보정. 본 회차 4회 실 청구액이 확인되면 그 값으로 갱신
+- **우선순위**: 마감 후
+
+---
+
+## #judge-prompt-tuning — Gemini Judge 의 자기 모델 편향 의심
+
+- **발견**: B3-S2-E2E Run 3 (2026-05-26)
+- **현상**: Gemini Judge 가 자기 모델(Gemini-2.5-flash) 로 생성된 콘텐츠의 `timeliness_trust` 차원에서 9점 부여 (mean 6.33, delta +2.67, 본 회차 유일한 high outlier). GPT/Claude 는 5점
+- **추가 관찰 필요**: 1회 outlier 라 단정 어려움. 추가 E2E 또는 어드민 UI 시연 중 패턴 관찰
+- **처리 방향 후보**:
+  - A. judge prompt 에 "자기 모델 평가 시 추가 엄격성" 명시 강화
+  - B. Judge Gemini 만 입력 콘텐츠에서 생성 모델 ID 익명화 (입력 메타데이터 제거)
+- **우선순위**: 마감 후
+
+---
+
+## #interactivity-structural-gap — interactivity 차원 점수 구조적으로 낮음
+
+- **발견**: B3-S2-E2E Run 1·2·3 (2026-05-26)
+- **현상**: `interactivity` 차원 점수가 3 모델 모두 일관되게 매우 낮음 (1~3점). 9 에이전트 파이프라인이 산출하는 콘텐츠의 인터랙티브 요소 자체가 약함
+- **가능한 원인**: Format Architect / Game-ifier 단계에서 5종 인터랙티브 템플릿이 충분히 활용 안 됨
+- **처리 방향 후보**:
+  - A. Format Architect prompt 강화 — 인터랙티브 요소 의무화·다양화
+  - B. 어드민 UI 에 "인터랙티브 강조" 옵션 추가하여 시연 시 활성화
+- **우선순위**: 마감 후 (시연 자체에는 영향 없음)
+
+---
+
 ## Issue 관리 규칙
 
 - 신규 발견 시 본 파일에 누적
