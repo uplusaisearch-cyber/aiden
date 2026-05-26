@@ -159,6 +159,21 @@ class TraceLogger:
             preserved = len(output_data.get("preserved_placeholders", []))
             warns = len(output_data.get("warnings", []))
             return f"type={stype}, subs={subs}, preserved={preserved}, warnings={warns}"
+        if agent_name == "judge_panel":
+            agg = output_data.get("aggregate") or {}
+            status = output_data.get("status", "?")
+            total = agg.get("weighted_total")
+            outliers = agg.get("outliers") or []
+            failed = output_data.get("failed_models") or []
+            mean = agg.get("mean_scores") or {}
+            stdev = agg.get("stdev_scores") or {}
+            mean_avg = (sum(mean.values()) / len(mean)) if mean else 0.0
+            stdev_avg = (sum(stdev.values()) / len(stdev)) if stdev else 0.0
+            failed_str = f", failed={failed}" if failed else ""
+            return (
+                f"status={status}, total={total}, mean_avg={mean_avg:.1f}, "
+                f"stdev_avg={stdev_avg:.2f}, outliers={len(outliers)}{failed_str}"
+            )
         return ""
 
     def write_metadata(
@@ -166,10 +181,16 @@ class TraceLogger:
         user_input: dict,
         status: str,
         notes: str = "",
+        judge_panel: dict | None = None,
     ) -> None:
-        """metadata.json 작성. run 종료 시 호출."""
+        """metadata.json 작성. run 종료 시 호출.
+
+        Args:
+            judge_panel: Stage 4 결과 dict. 있으면 ``metadata["judge_panel"]`` 에 병합
+                (전체 evaluations 까지 포함하면 metadata 가 커지므로 요약만 저장).
+        """
         ended_at = datetime.now(timezone.utc)
-        metadata = {
+        metadata: dict[str, Any] = {
             "run_id": self.run_dir.name,
             "started_at": self.started_at.isoformat(),
             "ended_at": ended_at.isoformat(),
@@ -179,6 +200,20 @@ class TraceLogger:
             "step_count": self._step_count,
             "notes": notes,
         }
+        if judge_panel:
+            agg = judge_panel.get("aggregate") or {}
+            metadata["judge_panel"] = {
+                "status": judge_panel.get("status"),
+                "models_used": judge_panel.get("models_used"),
+                "models_resolution_source": judge_panel.get("models_resolution_source"),
+                "weighted_total": agg.get("weighted_total"),
+                "mean_scores": agg.get("mean_scores"),
+                "stdev_scores": agg.get("stdev_scores"),
+                "outliers": agg.get("outliers"),
+                "failed_models": judge_panel.get("failed_models"),
+                "cost_usd_estimate": judge_panel.get("cost_usd_estimate"),
+                "duration_ms": judge_panel.get("duration_ms"),
+            }
         try:
             self.metadata_path.write_text(
                 json.dumps(metadata, ensure_ascii=False, indent=2),

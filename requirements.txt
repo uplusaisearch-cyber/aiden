@@ -1,0 +1,19 @@
+# AIDEN 런타임 의존성 (pyproject.toml 와 동기화)
+# 묶음 3 Step 2 (Judge Panel) 도입으로 openai/anthropic 의 lower bound 상향.
+
+google-genai>=0.3.0
+openai>=1.55.0
+anthropic>=0.40.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+httpx>=0.27.0
+
+# Dev (선택)
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
+# ruff>=0.4.0
+# black>=24.3.0

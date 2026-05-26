@@ -40,6 +40,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--category", required=True, help="콘텐츠 카테고리")
     parser.add_argument("--model", default="gemini-2.5-flash")
+    parser.add_argument(
+        "--skip-judge",
+        action="store_true",
+        help="Stage 4 Judge Panel 건너뜀 (디버깅용. 기본은 활성).",
+    )
     args = parser.parse_args()
 
     # Gemini 클라이언트
@@ -48,12 +53,25 @@ def main() -> None:
     # 9개 에이전트 callable
     agents = build_all_agents(client)
 
-    # Tracer (3 Stage 공유)
+    # Tracer (Stage 공유)
     tracer = TraceLogger.new_run(base_dir="runs")
     logger.info(f"E2E run started: {tracer.run_dir}")
 
+    # Stage 4: Judge Panel (옵션)
+    judge_panel = None
+    if not args.skip_judge:
+        try:
+            from backend.orchestrators.judge_panel import JudgePanel
+            judge_panel = JudgePanel.from_settings()
+            logger.info("Judge Panel 활성: %s", judge_panel.config.get("models"))
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Judge Panel 비활성화 (초기화 실패): %s", e)
+            judge_panel = None
+    else:
+        logger.info("--skip-judge 지정. Stage 4 건너뜀.")
+
     # Full Pipeline 실행
-    pipeline = FullPipeline(tracer=tracer, agents=agents)
+    pipeline = FullPipeline(tracer=tracer, agents=agents, judge_panel=judge_panel)
 
     try:
         result = pipeline.run(category=args.category)
@@ -84,11 +102,16 @@ def main() -> None:
         html_path.write_text(wrapped, encoding="utf-8")
         logger.info(f"Final HTML saved: {html_path}")
 
-    # metadata 작성
+    # metadata 작성 (Stage 4 결과 병합)
     tracer.write_metadata(
-        user_input={"category": args.category, "model": args.model},
+        user_input={
+            "category": args.category,
+            "model": args.model,
+            "skip_judge": args.skip_judge,
+        },
         status=result.get("status", "unknown"),
-        notes="Step 3-3 E2E 9 에이전트 완주 실험",
+        notes="B3-S2 E2E (9 에이전트 + Judge Panel)",
+        judge_panel=result.get("stage_4"),
     )
 
     # 요약 로그

@@ -48,3 +48,21 @@ orchestration:
       round_1: 5
       round_2: 3
       round_3: 1
+
+# Stage 4: Judge Panel (3-Model 교차 평가)
+# 모델명은 환경변수(.env) 또는 어드민 UI 런타임 override 가능 (3단계 우선순위)
+judge_panel:
+  models:
+    gemini: gemini-2.5-pro
+    gpt: gpt-5
+    claude: claude-opus-4-7
+  # 평가 차원 가중치 — 합계 100 (startup 시 검증)
+  # 환경변수 JUDGE_WEIGHTS_TOPIC_FIT 등으로 override 가능
+  weights:
+    topic_fit: 20
+    content_quality: 25
+    interactivity: 15
+    tone_authenticity: 20
+    timeliness_trust: 20
+  budget_per_run_usd: 0.05
+  timeout_sec: 60

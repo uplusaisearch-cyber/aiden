@@ -1,17 +1,23 @@
 """AIDEN 전체 파이프라인 통합.
 
-Topic Newsroom → Content Newsroom → Game-ifier
-하나의 TraceLogger 를 공유하여 9개 에이전트 trace 가 동일 run_id 에 누적됨.
+Topic Newsroom → Content Newsroom → Game-ifier → (선택) Judge Panel
+하나의 TraceLogger 를 공유하여 9개 에이전트 + Judge trace 가 동일 run_id 에 누적됨.
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
-from typing import Callable
+import time
+from typing import TYPE_CHECKING, Callable
 
 from .content_newsroom import ContentNewsroom
 from .gameifier import Gameifier
 from .topic_newsroom import TopicNewsroom
 from .trace_logger import TraceLogger
+
+if TYPE_CHECKING:
+    from .judge_panel import JudgePanel
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +37,7 @@ class FullPipeline:
         self,
         tracer: TraceLogger,
         agents: dict[str, Callable[[dict], dict]],
+        judge_panel: "JudgePanel | None" = None,
     ):
         """Args:
             tracer: TraceLogger 인스턴스 (모든 에이전트 공유).
@@ -38,9 +45,11 @@ class FullPipeline:
                 ``scout``, ``analyst``, ``planner``,
                 ``writer``, ``fact_checker``, ``devils_advocate``, ``editor``,
                 ``format_architect``, ``html_builder``.
+            judge_panel: 선택. None 이면 Stage 4 건너뜀.
         """
         self.tracer = tracer
         self.agents = agents
+        self.judge_panel = judge_panel
         self._validate_agents()
 
     def _validate_agents(self) -> None:
@@ -123,4 +132,50 @@ class FullPipeline:
         else:
             result["status"] = "completed"
 
+        # Stage 4: Judge Panel (선택)
+        if self.judge_panel and result.get("final_html"):
+            logger.info("Stage 4: Judge Panel")
+            result["stage_4"] = self._run_judge_panel(result["final_html"])
+
         return result
+
+    def _run_judge_panel(self, final_html: str) -> dict:
+        """JudgePanel 호출 + judge_panel.json 저장 + trace 기록."""
+        started = time.monotonic()
+        try:
+            judge_result = asyncio.run(self.judge_panel.evaluate(final_html))
+        except Exception as e:  # noqa: BLE001 — Stage 4 실패가 전체 파이프라인을 막지 않도록
+            logger.exception("Judge Panel 실행 중 예외")
+            return {"status": "exception", "error": str(e)}
+
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+
+        # judge_panel.json 저장
+        try:
+            (self.tracer.run_dir / "judge_panel.json").write_text(
+                json.dumps(judge_result, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.error("judge_panel.json 저장 실패: %s", e)
+
+        # trace 기록 (order=10, agent_name="judge_panel")
+        try:
+            self.tracer.log_agent_step(
+                order=10,
+                agent_name="judge_panel",
+                iteration=None,
+                input_data={
+                    "input_source": judge_result.get("input_source"),
+                    "input_size_bytes": judge_result.get("input_size_bytes"),
+                    "models_used": judge_result.get("models_used"),
+                    "models_resolution_source": judge_result.get("models_resolution_source"),
+                },
+                output_data=judge_result,
+                duration_ms=judge_result.get("duration_ms", elapsed_ms),
+                error=("all judges failed" if judge_result.get("status") == "failed" else None),
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.error("Judge Panel trace 기록 실패: %s", e)
+
+        return judge_result
