@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,7 +37,7 @@ export default function RootLayout({
         <style>{`:root { --font-pretendard: "Pretendard Variable", Pretendard, -apple-system, sans-serif; }`}</style>
       </head>
       <body className="bg-bg-primary text-text-primary antialiased font-korean">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
