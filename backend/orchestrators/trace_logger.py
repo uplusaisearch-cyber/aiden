@@ -2,15 +2,23 @@
 
 각 에이전트 실행 결과를 runs/{run_id}/agents/*.json 으로 저장.
 한 줄 요약은 runs/{run_id}/summary.jsonl 로 append.
+
+B3-S3-B 추가: ``sse_broker`` + ``main_loop`` 옵션 인자로 SSE 실시간 publish 지원.
+TraceLogger 자체는 동기 유지. publish 는 ``asyncio.run_coroutine_threadsafe`` 로 main loop 에
+스케줄 (FullPipeline 이 별도 스레드에서 실행될 때도 안전). 실패는 catch + 로그만.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
+
+if TYPE_CHECKING:  # 순환 import 회피
+    from backend.api.services.sse_broker import SSEBroker
 
 logger = logging.getLogger(__name__)
 
@@ -20,35 +28,76 @@ class TraceLogger:
 
     Usage:
         tracer = TraceLogger.new_run(base_dir="runs")
-        tracer.log_agent_step(
-            order=1,
-            agent_name="trend_scout",
-            iteration=None,
-            input_data={...},
-            output_data={...},
-            duration_ms=2500,
-        )
+        tracer.log_agent_step(...)
         tracer.write_metadata(user_input={...}, status="completed")
+
+    SSE 모드 (B3-S3-B 추가):
+        tracer = TraceLogger.new_run(
+            base_dir="runs",
+            sse_broker=broker,
+            main_loop=asyncio.get_running_loop(),
+        )
     """
 
-    def __init__(self, run_dir: Path):
+    def __init__(
+        self,
+        run_dir: Path,
+        *,
+        sse_broker: "SSEBroker | None" = None,
+        main_loop: asyncio.AbstractEventLoop | None = None,
+    ):
         self.run_dir = run_dir
         self.agents_dir = run_dir / "agents"
         self.summary_path = run_dir / "summary.jsonl"
         self.metadata_path = run_dir / "metadata.json"
         self.started_at = datetime.now(timezone.utc)
         self._step_count = 0
+        self._sse_broker = sse_broker
+        self._main_loop = main_loop
+
+    @property
+    def session_id(self) -> str:
+        """run_dir 이름 = session id (예: 2026-05-26T15-32-10_abc12345)."""
+        return self.run_dir.name
 
     @classmethod
-    def new_run(cls, base_dir: str = "runs") -> "TraceLogger":
-        """새 run 폴더 생성 후 TraceLogger 반환."""
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
-        run_id = f"{ts}_{uuid4().hex[:8]}"
-        run_dir = Path(base_dir) / run_id
+    def new_run(
+        cls,
+        base_dir: str = "runs",
+        *,
+        sse_broker: "SSEBroker | None" = None,
+        main_loop: asyncio.AbstractEventLoop | None = None,
+        session_id: str | None = None,
+    ) -> "TraceLogger":
+        """새 run 폴더 생성 후 TraceLogger 반환.
+
+        Args:
+            base_dir: runs 폴더 위치.
+            sse_broker: B3-S3-B 의 SSE pub/sub. None 이면 publish 안 함.
+            main_loop: SSE publish 시 사용할 메인 event loop (별도 스레드 호환).
+            session_id: 외부 지정 (API 가 미리 만든 ID 와 동일화). None 이면 자동 생성.
+        """
+        if session_id is None:
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
+            session_id = f"{ts}_{uuid4().hex[:8]}"
+        run_dir = Path(base_dir) / session_id
         run_dir.mkdir(parents=True, exist_ok=True)
         (run_dir / "agents").mkdir(exist_ok=True)
         logger.info(f"New trace run started: {run_dir}")
-        return cls(run_dir)
+        return cls(run_dir, sse_broker=sse_broker, main_loop=main_loop)
+
+    # ------------------------------------------------------------------
+    # 내부: thread-safe SSE publish
+    # ------------------------------------------------------------------
+    def _publish_sse_safe(self, event: str, data: dict) -> None:
+        """별도 스레드에서 호출돼도 main loop 로 publish 스케줄. 예외는 catch."""
+        if self._sse_broker is None or self._main_loop is None:
+            return
+        try:
+            coro = self._sse_broker.publish(self.session_id, event, data)
+            asyncio.run_coroutine_threadsafe(coro, self._main_loop)
+        except Exception as e:  # noqa: BLE001 — 메인 파이프라인 차단 금지
+            logger.warning("SSE publish 실패 (event=%s): %s", event, e)
 
     def log_agent_step(
         self,
@@ -112,6 +161,22 @@ class TraceLogger:
                 f.write(json.dumps(summary, ensure_ascii=False) + "\n")
         except Exception as e:
             logger.error(f"Failed to write summary: {e}")
+
+        # SSE publish (broker 와 main loop 가 모두 있을 때만)
+        self._publish_sse_safe(
+            "agent_step",
+            {
+                "order": order,
+                "agent_name": agent_name,
+                "iteration": iteration,
+                "timestamp": record["timestamp"],
+                "duration_ms": duration_ms,
+                "input": input_data,
+                "output": output_data,
+                "error": error,
+                "highlight": summary["highlight"],
+            },
+        )
 
     @staticmethod
     def _extract_highlight(agent_name: str, output_data: dict) -> str:
