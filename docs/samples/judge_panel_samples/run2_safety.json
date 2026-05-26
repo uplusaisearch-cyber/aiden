@@ -1,0 +1,162 @@
+{
+  "stage": 4,
+  "input_source": "final_output.html",
+  "input_size_bytes": 6921,
+  "models_used": {
+    "gemini": "gemini-2.5-pro",
+    "gpt": "gpt-5",
+    "claude": "claude-opus-4-7"
+  },
+  "models_resolution_source": {
+    "gemini": "config",
+    "gpt": "config",
+    "claude": "config"
+  },
+  "evaluations": {
+    "gemini": {
+      "model": "gemini-2.5-pro",
+      "scores": {
+        "topic_fit": 9,
+        "content_quality": 7,
+        "interactivity": 1,
+        "tone_authenticity": 6,
+        "timeliness_trust": 4
+      },
+      "comments": {
+        "topic_fit": "여름철 가족 안전이라는 주제는 플러스탭의 주 사용자인 가족 단위 고객의 관심사와 정확히 일치합니다. 화재 예방, 냉방기기, 어린이 보호구역 등 실생활에 밀접한 내용을 다루어 활용도가 높습니다.",
+        "content_quality": "전기/가스 점검, 에어컨 실외기 관리, 스쿨존 서행 등 필수적인 안전 수칙을 논리적으로 잘 구성했습니다. 다만, 정보가 다소 일반적이고 새로운 인사이트를 제공하기보다는 기존에 알려진 내용을 요약하는 수준에 머무릅니다.",
+        "interactivity": "콘텐츠 내에 퀴즈, 체크리스트, 계산기와 같은 인터랙티브 요소가 전혀 존재하지 않습니다. '우리 집 안전 점검 체크리스트'와 같은 간단한 요소만 추가했어도 주제의 실용성을 크게 높일 수 있었을 것입니다. 이는 결정적인 약점입니다.",
+        "tone_authenticity": "전반적으로 공익광고나 정부 캠페인과 유사한 다소 딱딱하고 권고적인 어조입니다. '...함을 명심하십시오' 와 같은 표현은 플러스탭이 지향하는 친근하고 캐주얼한 톤과는 거리가 있습니다.",
+        "timeliness_trust": "출처를 명시한 점은 긍정적이나, 2025년, 2026년 등 미래 시점의 출처를 다수 인용하고 있어 신뢰도를 심각하게 훼손합니다. 이는 콘텐츠 생성 과정의 오류로 보이며, 독자에게 큰 혼란을 줍니다."
+      },
+      "overall_score": 5.4,
+      "strengths": [
+        "가족 단위 사용자에게 매우 적절하고 시의성 있는 주제 선정",
+        "화재, 가전, 교통 등 여름철 안전의 핵심 분야를 체계적으로 다룸"
+      ],
+      "weaknesses": [
+        "사용자의 참여를 유도하는 인터랙티브 요소가 전무함",
+        "출처에 2025, 2026년 등 미래 시점이 표기되어 신뢰성을 심각하게 저해함"
+      ],
+      "one_line_verdict": "주제는 훌륭하나, 신뢰할 수 없는 출처와 상호작용 부재가 아쉽다."
+    },
+    "gpt": {
+      "model": "gpt-5",
+      "scores": {
+        "topic_fit": 8,
+        "content_quality": 7,
+        "interactivity": 3,
+        "tone_authenticity": 6,
+        "timeliness_trust": 6
+      },
+      "comments": {
+        "topic_fit": "여름철 가정·어린이 안전을 다뤄 플러스탭 사용자 관심사에 잘 부합합니다. 가족 관점의 사례와 점검 포인트가 명확합니다.",
+        "content_quality": "전기·가스, 냉방기기, 어린이보호구역 등으로 논리적으로 구성되고 실천 팁이 구체적입니다. 다만 일부 조언이 포괄적이고 근거 연결이 약한 부분이 있습니다.",
+        "interactivity": "정적 기사 형태로 체크리스트, 자가 점검, 퀴즈 등 주제를 강화하는 인터랙션이 없습니다. 터치 기반 점검표나 위험요소 확인 플로우 추가가 필요합니다.",
+        "tone_authenticity": "생활 감수성이 살아 있으나 결말부의 명령형·경고 문구가 반복되어 다소 전형적으로 느껴집니다. 사례나 개인화된 표현이 더해지면 자연스러움이 높아집니다.",
+        "timeliness_trust": "2024~2026년 자료를 인용해 시의성은 좋습니다. 그러나 다수의 괄호형 출처가 실제 링크로 제공되지 않고, 유튜브·티스토리 등 신뢰도 낮은 출처 비중이 있어 신뢰성이 떨어집니다."
+      },
+      "overall_score": 6.0,
+      "strengths": [
+        "생활 밀착형 안전 수칙을 분야별로 명료하게 정리",
+        "최근 이슈와 통계 흐름을 반영해 시의성 확보"
+      ],
+      "weaknesses": [
+        "체크리스트·자가 점검 등 인터랙티브 요소 부재",
+        "출처 표기 불일치와 비전문 출처 포함으로 신뢰도 저하"
+      ],
+      "one_line_verdict": "실용적이지만 출처 정리와 인터랙션 보완 필요"
+    },
+    "claude": {
+      "model": "claude-opus-4-7",
+      "scores": {
+        "topic_fit": 7,
+        "content_quality": 6,
+        "interactivity": 1,
+        "tone_authenticity": 5,
+        "timeliness_trust": 5
+      },
+      "comments": {
+        "topic_fit": "가족 안전이라는 보편 주제로 페르소나 적합성은 무난하나, '여름철'과 '2026년 집중안전점검' 등 시점이 혼재되어 계절 포커스가 흐려졌다.",
+        "content_quality": "전기·냉방기기·어린이보호구역 등 실용 정보를 다루지만 일반론 나열에 그치고, 구체 수치나 체크리스트 없이 '중요합니다'가 반복된다.",
+        "interactivity": "퀴즈·체크리스트·계산기 등 인터랙티브 요소가 전혀 없는 정적 텍스트 구성으로, 폴백 HTML 한계가 드러난다.",
+        "tone_authenticity": "'결정적인 방패', '가장 강력한 방패가 되어주십시오', '명심하십시오' 등 캠페인 표어식 상투구와 격식체가 플러스탭 캐주얼 톤과 어긋난다.",
+        "timeliness_trust": "각 단락 끝에 출처 URL을 무더기로 나열했지만 어떤 주장이 어느 출처에서 왔는지 매핑이 불명확하고, '2026-05' 등 미래 시점 출처가 다수라 신뢰도가 떨어진다."
+      },
+      "overall_score": 4.8,
+      "strengths": [
+        "생활 밀착 주제 선정",
+        "출처 링크를 본문과 하단에 모두 노출"
+      ],
+      "weaknesses": [
+        "인터랙티브 요소 부재(폴백 HTML)",
+        "상투구·훈계조로 사람이 쓴 글다움 부족",
+        "출처-주장 매핑 불명확 및 미래 일자 혼재"
+      ],
+      "one_line_verdict": "실용 정보는 있으나 상투구·정적 구성으로 평작 수준."
+    }
+  },
+  "failed_models": [],
+  "duration_ms": 36828,
+  "cost_usd_estimate": 0.1375,
+  "aggregate": {
+    "mean_scores": {
+      "topic_fit": 8.0,
+      "content_quality": 6.67,
+      "interactivity": 1.67,
+      "tone_authenticity": 5.67,
+      "timeliness_trust": 5.0
+    },
+    "stdev_scores": {
+      "topic_fit": 0.82,
+      "content_quality": 0.47,
+      "interactivity": 0.94,
+      "tone_authenticity": 0.47,
+      "timeliness_trust": 0.82
+    },
+    "weighted_total": 56.5,
+    "outliers": [
+      {
+        "dimension": "topic_fit",
+        "model": "gemini",
+        "score": 9,
+        "mean": 8.0,
+        "delta": 1.0,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "topic_fit",
+        "model": "claude",
+        "score": 7,
+        "mean": 8.0,
+        "delta": -1.0,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "interactivity",
+        "model": "gpt",
+        "score": 3,
+        "mean": 1.67,
+        "delta": 1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "timeliness_trust",
+        "model": "gemini",
+        "score": 4,
+        "mean": 5.0,
+        "delta": -1.0,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "timeliness_trust",
+        "model": "gpt",
+        "score": 6,
+        "mean": 5.0,
+        "delta": 1.0,
+        "outlier_severity": "medium"
+      }
+    ]
+  },
+  "status": "completed"
+}

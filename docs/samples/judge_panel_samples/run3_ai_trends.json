@@ -1,0 +1,194 @@
+{
+  "stage": 4,
+  "input_source": "final_output.html",
+  "input_size_bytes": 5711,
+  "models_used": {
+    "gemini": "gemini-2.5-pro",
+    "gpt": "gpt-5",
+    "claude": "claude-opus-4-7"
+  },
+  "models_resolution_source": {
+    "gemini": "config",
+    "gpt": "config",
+    "claude": "config"
+  },
+  "evaluations": {
+    "gemini": {
+      "model": "gemini-2.5-pro",
+      "scores": {
+        "topic_fit": 9,
+        "content_quality": 8,
+        "interactivity": 1,
+        "tone_authenticity": 7,
+        "timeliness_trust": 9
+      },
+      "comments": {
+        "topic_fit": "플러스탭의 주 사용층인 바쁜 현대인의 시간 관리라는 핵심 니즈를 정확히 파악한 주제입니다. '가사나 육아로 개인 시간을 내기 어렵다면'이라는 도입부는 독자의 즉각적인 공감을 유도합니다.",
+        "content_quality": "AI 에이전트의 개념 정의부터 구체적 활용 사례, 그리고 제미나이(Gemini)를 통한 미래 전망까지 이어지는 구조가 매우 논리적이고 명확합니다. 정보가 실용적이며 이해하기 쉽게 전달됩니다.",
+        "interactivity": "본문 내용의 이해를 돕거나 독자의 참여를 유도하는 인터랙티브 요소가 전혀 존재하지 않습니다. 예를 들어 '우리 집에 필요한 AI 에이전트 기능 체크리스트' 같은 간단한 요소만 있었어도 훨씬 나았을 것입니다.",
+        "tone_authenticity": "전반적으로 깔끔하고 전문적인 어조를 사용하지만, 다소 교과서적인 느낌이 있습니다. '삶의 질을 향상시키는 새로운 기회를 제공합니다'와 같은 일부 문장은 기계적인 느낌을 주어 아쉽습니다.",
+        "timeliness_trust": "2023년 말의 최신 정보를 반영하고 있으며, 'it.donga.com', 'cloud.google.com' 등 구체적이고 신뢰도 높은 출처를 명기한 점이 매우 훌륭합니다."
+      },
+      "overall_score": 6.8,
+      "strengths": [
+        "시의성 높은 주제와 플러스탭 사용자 페르소나의 완벽한 조화",
+        "논리적인 글의 구조와 신뢰할 수 있는 최신 출처 명시"
+      ],
+      "weaknesses": [
+        "독자의 참여를 유도할 수 있는 인터랙티브 기능의 완전한 부재",
+        "다소 평이하고 상투적인 어조"
+      ],
+      "one_line_verdict": "주제 선정과 정보의 신뢰도는 탁월하나, 인터랙티브 요소의 부재가 치명적이다."
+    },
+    "gpt": {
+      "model": "gpt-5",
+      "scores": {
+        "topic_fit": 8,
+        "content_quality": 6,
+        "interactivity": 3,
+        "tone_authenticity": 6,
+        "timeliness_trust": 5
+      },
+      "comments": {
+        "topic_fit": "스마트홈·일상 자동화 맥락이 플러스탭 사용자 관심사와 잘 맞습니다. 바쁜 가정·개인 생산성 페르소나를 직접 겨냥한 사례 제시도 적절합니다.",
+        "content_quality": "구성과 흐름은 명확하나 구체적 가이드·한계·리스크 설명이 부족합니다. ‘하루 30분 절약’ 등 정량 주장은 근거 제시가 없어 신뢰도가 낮습니다.",
+        "interactivity": "이미지와 CTA 외에 본문 주제를 강화하는 인터랙션이 없습니다. 체크리스트, 자동화 시나리오 데모, 시간 절감 계산기 등이 필요합니다.",
+        "tone_authenticity": "매끄럽지만 홍보성·상투적 문장(‘새로운 기회를 제공합니다’)이 반복됩니다. 실제 경험담·대화체 사례가 더해지면 사람다움이 높아집니다.",
+        "timeliness_trust": "출처가 연도 표기만 있고 링크·인용 범위가 불명확합니다. 2023년 정보 위주로 최신 변화 반영과 검증 가능한 참고 링크 보강이 필요합니다."
+      },
+      "overall_score": 5.6,
+      "strengths": [
+        "주제와 타깃의 적합성이 높고 일상 적용 사례가 이해하기 쉽습니다.",
+        "문단 구조와 시각 자료 배치가 명확해 읽기 흐름이 좋습니다."
+      ],
+      "weaknesses": [
+        "검증 가능한 출처·데이터 부재로 핵심 주장 신뢰도가 낮습니다.",
+        "주제를 살리는 인터랙티브 요소가 거의 없어 몰입도가 떨어집니다."
+      ],
+      "one_line_verdict": "주제 적합하나 근거·상호작용이 아쉬운 개요 수준"
+    },
+    "claude": {
+      "model": "claude-opus-4-7",
+      "scores": {
+        "topic_fit": 7,
+        "content_quality": 6,
+        "interactivity": 1,
+        "tone_authenticity": 4,
+        "timeliness_trust": 5
+      },
+      "comments": {
+        "topic_fit": "AI트렌드 카테고리와 일상 시간 확보라는 페르소나 니즈에 부합하나, 가사·육아 맥락이 도입부 외에는 거의 드러나지 않습니다.",
+        "content_quality": "AI 에이전트의 개념과 사례를 정리했으나 '하루 30분 이상' 같은 수치의 근거가 없고, 내용이 일반론에 머무릅니다.",
+        "interactivity": "퀴즈·체크리스트·계산기 등 인터랙티브 요소가 전무하며 정적인 텍스트와 이미지로만 구성되어 있습니다.",
+        "tone_authenticity": "'~필요가 있습니다', '진화하고 있습니다', '가능성을 보여줍니다', '살펴보십시오' 등 격식체와 LLM 특유의 nominalization이 다수 보여 플러스탭 캐주얼 톤과 거리가 있습니다.",
+        "timeliness_trust": "출처가 2023-11, 2023-12로 2년 가까이 지났고 도메인만 표기되어 구체적 기사·페이지 특정이 어렵습니다."
+      },
+      "overall_score": 4.6,
+      "strengths": [
+        "주제 진입과 구조가 명확함",
+        "범용 AI 에이전트로의 확장 흐름을 짚음"
+      ],
+      "weaknesses": [
+        "인터랙티브 요소 부재",
+        "격식체·번역체로 캐주얼 톤 미달",
+        "출처가 오래되고 비특정"
+      ],
+      "one_line_verdict": "주제는 맞으나 톤·시의성·인터랙션 모두 보완 필요"
+    }
+  },
+  "failed_models": [],
+  "duration_ms": 29078,
+  "cost_usd_estimate": 0.1375,
+  "aggregate": {
+    "mean_scores": {
+      "topic_fit": 8.0,
+      "content_quality": 6.67,
+      "interactivity": 1.67,
+      "tone_authenticity": 5.67,
+      "timeliness_trust": 6.33
+    },
+    "stdev_scores": {
+      "topic_fit": 0.82,
+      "content_quality": 0.94,
+      "interactivity": 0.94,
+      "tone_authenticity": 1.25,
+      "timeliness_trust": 1.89
+    },
+    "weighted_total": 59.2,
+    "outliers": [
+      {
+        "dimension": "topic_fit",
+        "model": "gemini",
+        "score": 9,
+        "mean": 8.0,
+        "delta": 1.0,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "topic_fit",
+        "model": "claude",
+        "score": 7,
+        "mean": 8.0,
+        "delta": -1.0,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "content_quality",
+        "model": "gemini",
+        "score": 8,
+        "mean": 6.67,
+        "delta": 1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "interactivity",
+        "model": "gpt",
+        "score": 3,
+        "mean": 1.67,
+        "delta": 1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "tone_authenticity",
+        "model": "gemini",
+        "score": 7,
+        "mean": 5.67,
+        "delta": 1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "tone_authenticity",
+        "model": "claude",
+        "score": 4,
+        "mean": 5.67,
+        "delta": -1.67,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "timeliness_trust",
+        "model": "gemini",
+        "score": 9,
+        "mean": 6.33,
+        "delta": 2.67,
+        "outlier_severity": "high"
+      },
+      {
+        "dimension": "timeliness_trust",
+        "model": "gpt",
+        "score": 5,
+        "mean": 6.33,
+        "delta": -1.33,
+        "outlier_severity": "medium"
+      },
+      {
+        "dimension": "timeliness_trust",
+        "model": "claude",
+        "score": 5,
+        "mean": 6.33,
+        "delta": -1.33,
+        "outlier_severity": "medium"
+      }
+    ]
+  },
+  "status": "completed"
+}

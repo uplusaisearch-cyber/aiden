@@ -1,0 +1,95 @@
+{
+  "stage": 4,
+  "input_source": "final_output.html",
+  "input_size_bytes": 9095,
+  "models_used": {
+    "gemini": "gemini-2.5-flash",
+    "gpt": "gpt-5",
+    "claude": "claude-opus-4-7"
+  },
+  "models_resolution_source": {
+    "gemini": "env",
+    "gpt": "config",
+    "claude": "config"
+  },
+  "evaluations": {
+    "gpt": {
+      "model": "gpt-5",
+      "scores": {
+        "topic_fit": 8,
+        "content_quality": 6,
+        "interactivity": 9,
+        "tone_authenticity": 6,
+        "timeliness_trust": 6
+      },
+      "comments": {
+        "topic_fit": "‘맛집’ 카테고리와 가심비 외식 니즈를 정확히 겨냥했고, 기념일·가족 외식 맥락도 잘 담았습니다. CTA로 탐색 행동까지 자연스럽게 연결됩니다.",
+        "content_quality": "가심비 개념 설명과 사례 흐름은 무난하지만, 주소·예약 팁·대체 옵션·가격 비교 등 실용 디테일이 부족합니다. 일부 매장 소개는 검증 근거가 약해 신뢰성 면에서 아쉽습니다.",
+        "interactivity": "체크리스트와 진행바가 기사 핵심(가심비 판단 기준)을 실천하도록 돕습니다. 완료 메시지로 동기부여까지 연결되어 본문 주제를 효과적으로 강화합니다.",
+        "tone_authenticity": "“후회 없는 선택”, “만족감 200%” 등 과장·상투 표현이 잦아 상업적 톤이 강합니다. 구체적 체험담이나 관찰이 부족해 인간적인 결이 다소 약합니다.",
+        "timeliness_trust": "2025~2026 시점 언급으로 시의성은 확보했으나, namu.wiki·tistory·YouTube 등 보조 급 출처 비중이 커 신뢰도가 떨어집니다. 직접 링크와 1차 자료 인용이 필요합니다."
+      },
+      "overall_score": 7.0,
+      "strengths": [
+        "주제 적합성과 명확한 독자 페인포인트 대응",
+        "체크리스트 기반 인터랙션으로 실천 가능성 강화"
+      ],
+      "weaknesses": [
+        "출처 신뢰도와 인용 방식(직접 링크·1차 자료) 미흡",
+        "매장 정보의 구체성 부족(주소, 예약/예산 팁, 대안 제시)"
+      ],
+      "one_line_verdict": "주제 적합·체크리스트 우수하나 근거와 디테일 보강 필요"
+    },
+    "claude": {
+      "model": "claude-opus-4-7",
+      "scores": {
+        "topic_fit": 7,
+        "content_quality": 6,
+        "interactivity": 7,
+        "tone_authenticity": 5,
+        "timeliness_trust": 4
+      },
+      "comments": {
+        "topic_fit": "맛집 카테고리에 부합하고 '가심비'라는 키워드도 시의성 있게 잡았으나, 페르소나(타깃 독자)가 모호하고 가격대(27만원 오마카세)가 플러스탭 일반 독자층과 어울리는지 의문.",
+        "content_quality": "구조는 정돈됐으나 '스시 코우지', '고메 한식당 담' 등 실재 여부가 불분명한 가게가 등장하고, 정보가 표면적·일반론에 머묾. 가심비 정의→사례→찾는 법 흐름은 무난.",
+        "interactivity": "체크리스트가 본문 '찾는 법' 섹션과 정확히 매핑되어 실용적이고, 프로그레스바·완료 메시지까지 작동 로직이 완성도 있음. 다만 단순 체크 수준이라 깊이는 아쉬움.",
+        "tone_authenticity": "'후회 없는', '선사합니다', '매개체가 됩니다', '어우러진 곳에서' 등 LLM 상투구가 반복. '~을 추천합니다', '~좋은 선택입니다' 식 안내문 톤이 강해 플러스탭 캐주얼 감성과 거리감.",
+        "timeliness_trust": "namu.wiki, youtube.com, tistory.com, aladin.co.kr 등 신뢰도 낮은 출처가 다수. '2026년 트렌드'를 2025년 자료로 인용하는 등 시점 정합성도 어색하고, 식당명·가격 검증 근거가 약함."
+      },
+      "overall_score": 5.8,
+      "strengths": [
+        "체크리스트와 본문 섹션의 명확한 연계",
+        "'가심비' 키워드의 시의성 있는 포착"
+      ],
+      "weaknesses": [
+        "나무위키·티스토리·유튜브 등 비신뢰 출처 남발",
+        "LLM 상투구와 안내문 톤으로 사람 글 느낌 약함"
+      ],
+      "one_line_verdict": "구조는 깔끔하나 출처 신뢰도와 톤이 발목을 잡는다."
+    }
+  },
+  "failed_models": [
+    "gemini"
+  ],
+  "duration_ms": 34389,
+  "cost_usd_estimate": 0.13,
+  "aggregate": {
+    "mean_scores": {
+      "topic_fit": 7.5,
+      "content_quality": 6.0,
+      "interactivity": 8.0,
+      "tone_authenticity": 5.5,
+      "timeliness_trust": 5.0
+    },
+    "stdev_scores": {
+      "topic_fit": 0.5,
+      "content_quality": 0.0,
+      "interactivity": 1.0,
+      "tone_authenticity": 0.5,
+      "timeliness_trust": 1.0
+    },
+    "weighted_total": 63.0,
+    "outliers": []
+  },
+  "status": "degraded"
+}
