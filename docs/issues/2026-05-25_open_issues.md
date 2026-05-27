@@ -112,6 +112,60 @@
 
 ---
 
+## ✅ [closed] #W-recent-runs-crash — RecentRuns 컴포넌트 statusVariant default 누락 크래시
+
+- **발견**: 2026-05-28 (B3-S3-C 직후 사용자 보고)
+- **현상**: 메인 페이지 `/` 진입 시 `recent-runs.tsx:74` 에서 `Cannot read properties of undefined (reading 'color')` 크래시
+- **진짜 원인 (사후 분석)**:
+  1. 백엔드 `/api/runs` 가 `status: "failed_stage_1"` (그리고 잠재적으로 `"unknown"`) 같은 값을 반환할 수 있음. `RunStatus` union (`completed/partial/failed/running`) 에 없는 값
+  2. `statusVariant()` switch 가 default 케이스 없음 → 미매칭 시 `undefined` 반환 → 74번 라인 `sv.color` 접근 시 크래시
+  3. `toMockShape` 의 `as MockRecentRun["status"]` 캐스트가 타입 검사를 우회해 런타임에 도달
+- **B3-S3-C 와의 관계**: **무관 (잠재 버그)**. B3-S3-C 는 `recent-runs.tsx` / `RunSummary` 경로를 건드리지 않았음. B3-S3-C 작업 후 사용자가 메인 페이지를 다시 열었을 때 `failed_stage_1` 데이터를 처음 마주쳐 표면화됨. 명세 §16 의 "회귀 없음" 결론은 ChatMessage 직렬화 변경에 한해 정확. 다만 회귀 점검 범위를 "메인 페이지가 크래시하지 않는지" 까지 넓혀서 확인했어야 했다는 점은 사후 반성 포인트
+- **수정**: `statusVariant` 시그니처를 `string` 으로 완화 + `failed*` prefix 매칭 + 알 수 없는 상태는 회색 폴백. 함께 발견된 `CATEGORY_LABEL_MAP[run.category]` undefined (API 가 영문 id 가 아닌 한국어 라벨 반환) 도 `?? run.category` 폴백 적용. `npm run build` 통과
+- **잔여**: 백엔드가 어떤 카테고리 라벨 / 상태값을 정식으로 노출할지 스펙 정리 필요 → `#api-category-label-mismatch` 로 분리
+
+---
+
+## #api-category-label-mismatch — /api/runs 가 영문 id 가 아닌 한국어 라벨로 category 반환
+
+- **발견**: 2026-05-28 (#W-recent-runs-crash 분석 중 부수 발견)
+- **현상**: `RunListResponse.runs[].category` 가 `"맛집" / "AI트렌드"` 같은 한국어 라벨로 옴. 프론트 `CategoryId` 는 `"food" / "ai-trend" / ...` 영문 id 라 `CATEGORY_LABEL_MAP[run.category]` 가 `undefined` → 현재는 폴백으로 raw 라벨 표시
+- **위험도**: 낮음. 다만 카테고리 필터·아이콘·통계 동작 모두 영향 가능
+- **원인 후보**: `run_manager.py` 의 `CATEGORY_LABEL` 매핑이 metadata 저장 시 라벨로 변환했고, `/api/runs` 가 그 라벨을 그대로 반환
+- **처리 방향**:
+  - A. `/api/runs` 응답 직전 라벨 → id 역매핑
+  - B. metadata 저장 시 raw id 도 함께 저장하고 API 가 id 를 우선 반환
+- **우선순위**: 마감 후 (B3-S3-D/E 와 함께 정리)
+
+---
+
+## ✅ [closed] #W-hydration-font-mismatch — layout.tsx 인라인 <style> hydration mismatch
+
+- **발견**: 2026-05-28 (#W-recent-runs-crash 수정 직후, 메인 페이지 CSS 깨짐으로 사용자 보고)
+- **현상**: 콘솔에 `Warning: Text content did not match. Server: ":root { --font-pretendard: &quot;...&quot;... }" Client: ":root { --font-pretendard: \"...\"... }"` → `Uncaught Error: Text content does not match server-rendered HTML` → 루트 전체가 client rendering 으로 fallback 되며 일부 스타일이 잠시 깨져 보임
+- **원인**: `frontend/app/layout.tsx <head>` 안의 `<style>{`:root { --font-pretendard: "Pretendard Variable", ... }`}</style>` 인라인 스타일. React SSR 이 children-as-text 로 직렬화할 때 큰따옴표를 `&quot;` HTML 엔티티로 인코딩 → 클라이언트는 원본 따옴표로 재구성 → hydration 비교 mismatch
+- **B3-S3-C 와의 관계**: **무관**. layout.tsx 인라인 style 은 B3-S3-A (Next.js 셋업) 시점부터 존재. #W-recent-runs-crash 를 고치자 그 위에 가려져 있던 CSS 깨짐이 표면화됨
+- **수정 방향 선택**: 옵션 (A) — `--font-pretendard` CSS 변수를 `frontend/app/globals.css` 의 `:root` 블록으로 이전. CSS 파일 안에서는 따옴표가 그대로 보존되므로 mismatch 없음. layout.tsx 인라인 `<style>` 자체를 제거, `<link>` Pretendard CDN 로딩은 유지. Tailwind config 의 `fontFamily.korean: ["var(--font-pretendard)", ...]` 가 동일하게 작동
+- **검증**: `npm run build` 6/6 페이지 정적 생성 PASS, 타입 에러 0. 사용자는 dev 서버 재시작 + 필요시 `.next/` 캐시 삭제 권장 (hydration 워닝이 캐시된 경우)
+- **잔여**: 향후 `<head>` 에 동적 `<style>` 주입할 일이 있다면 `dangerouslySetInnerHTML={{__html: ...}}` 패턴 사용 + 가능하면 따옴표 escape 안전 처리
+
+---
+
+## ✅ [closed] #W-trace-viewer-history-missing — 완료된 run 진입 시 connecting 무한 대기
+
+- **발견**: 2026-05-28 (B3-S3-C 직후 사용자 보고)
+- **현상**: `/run/<id>` 페이지가 완료된 과거 run 으로 진입 시 ChatStream 의 "연결 중… 첫 메시지를 기다립니다" 안내가 영원히 표시되며 채팅·StagePanel 정보가 비어 있음. 라이브 run 만 정상 동작
+- **원인**: 명세 B3-S3-C §6-1 의 `useRunStream` 훅이 SSE (`/api/stream/{id}`) 만 구독. 완료된 run 은 SSEBroker 에 새 publish 가 없으므로 EventSource 가 무기한 idle. 백엔드에는 이미 `GET /api/runs/{id}` 가 디스크 trace 를 ChatMessage 배열로 변환해 반환하지만 훅이 호출하지 않음
+- **수정**: fetch-then-stream 패턴으로 `useRunStream` 재작성
+  1. 마운트 시 `fetchRunDetail(runId)` 로 disk-recorded 메시지 일괄 로드 → `messages`, `currentAgent/Stage/Iter`, `startedAt`, `duration_sec` → `elapsedMs` 채움
+  2. detail.status 가 종료 상태 (`completed`/`partial`/`failed*`) → `state.status='completed'` + `isHistorical=true` + **SSE 연결 스킵**
+  3. 진행 중 상태 (`running`/`unknown` — metadata 미작성 상태도 포함) 또는 fetch 404 → SSE 구독으로 후속 메시지 합치기 (`seenIds` 기반 dedupe 로 boundary 중복 방어)
+  4. `RunState` 에 `isHistorical: boolean` 필드 추가 — `PlaybackToggle` 이 `disabled={!run.isHistorical}` 로 라이브 비활성·과거 활성 정확 분기
+- **검증**: `npm run build` 통과 (`/run/[id]` 5.73→6.16 KB). 실제 백엔드의 완료 run (`2026-05-26T14-52-34_df9eb51a`, status=completed) 호출 시 messages 12건·judge_panel 포함·humanized 필드 정상 응답 확인
+- **잔여**: 과거 run 의 누적 토큰·비용은 metadata 에 아직 미저장 → judge_panel.cost_usd_estimate 만 부분 표시. 전체 비용 누적은 cost_tracker 통합 시점에 별도 정리
+
+---
+
 ## Issue 관리 규칙
 
 - 신규 발견 시 본 파일에 누적

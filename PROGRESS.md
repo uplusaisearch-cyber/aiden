@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-05-25 |
-| **전체 진행률** | **97.8%** (45/46 항목 완료) |
-| **현재 Phase** | Phase 2 거의 완료 (묶음 3 Step 1 완료 / P2 R3 fact_checker iter3 패치 + 재현성 E2E 3회 모두 PASS / 묶음 3 잔여: 우선순위 3 Judge Panel · 우선순위 4 어드민 UI) |
+| **마지막 업데이트** | 2026-05-28 |
+| **전체 진행률** | **98.0%** (49/50 항목 완료) |
+| **현재 Phase** | Phase 4 진입 (B3-S3-C 트레이스 뷰어 완료, `/run/[id]` 3-컬럼 SSE 동작 / 잔여: B3-S3-D Judge 시각화 · 최종 콘텐츠 미리보기 · 어드민 prompt 편집기) |
 
 ---
 
@@ -81,10 +81,10 @@
 
 ## Phase 4: Frontend + Admin ⬜
 
-- [ ] Next.js 14 프로젝트 셋업
-- [ ] Tailwind + shadcn/ui 설정
-- [ ] 메인 페이지: 카테고리 선택 UI (프리셋 4 + 자유 입력)
-- [ ] 트레이스 대시보드 (에이전트별 색상 채팅 버블, SSE 연결)
+- [x] Next.js 14 프로젝트 셋업 _(2026-05-26 · B3-S3-A)_
+- [x] Tailwind + shadcn/ui 설정 _(2026-05-26 · B3-S3-A)_
+- [x] 메인 페이지: 카테고리 선택 UI (프리셋 4 + 자유 입력) _(2026-05-26 · B3-S3-A/B)_
+- [x] 트레이스 대시보드 (에이전트별 색상 채팅 버블, SSE 연결) _(2026-05-28 · B3-S3-C)_
 - [ ] 최종 콘텐츠 미리보기 (iframe)
 - [ ] 심사 결과 카드 3개
 - [ ] 어드민: system prompt 편집기 (9개 .md 파일 웹에서 수정)
@@ -136,6 +136,7 @@
 | 2026-05-25 | **묶음 2 Step 2.5 부분 완료 (P0 차단 발견)**: 코드 5종 생성(gemini_client + concrete_agents + scripts 2종 + early_integration_report). 실제 Gemini 호출 4회 시도, 모두 Trend Scout 단계에서 실패. **발견된 P0 차단 3건**: (1) 명세서 default 모델 `gemini-2.0-flash` 가 신규 사용자에게 404 (deprecated) (2) `google-generativeai` 패키지 자체가 deprecated (FutureWarning, "google-genai 로 마이그레이션 권고") (3) Gemini 2.5 의 grounding (`google_search`) tool 을 deprecated 라이브러리에서 호출 불가 — 4가지 형식 모두 거부됨(`google_search_retrieval` 문자열·`google_search` 문자열·dict form·protos). **사용자 지시 준수**: Topic 실패해도 Content 강제 진행 안 함 → Content Newsroom 미실행. 비용 ~$0 (generation 도달 전 실패). 오케스트레이터 graceful degrade 동작은 의도대로 검증됨(`_force_approve` 경로 정상). | Step 2.5 의 의도(통합 이슈 조기 발견) 달성. 권장 후속: `google-genai` 신규 패키지로 `gemini_client.py` 재작성. Step 3-3 진입 전 사용자 결정 필요(방안 A 마이그레이션 / B grounding 비활성 보조 검증 / C v2 로 보류). 상세는 docs/early_integration_report.md |
 | 2026-05-25 | **묶음 2 Step 2.5 재시도 완료 (방안 A 채택, 모든 P0 해소)**: 패키지 `google-generativeai 0.8.6` → `google-genai 2.6.0` 마이그레이션. `gemini_client.py` 전체 재작성(`genai.Client(...).models.generate_content(...)` 신규 SDK 패턴 + `types.Tool(google_search=types.GoogleSearch())` grounding + `_extract_text()` candidates fallback). 모델 default `gemini-2.5-flash`로 변경(client 상수 + 스크립트 양쪽). **Grounding + JSON 충돌 해결 = 옵션 B**: grounding 사용 시 `response_mime_type` 미사용 + `JSON_FORCE_SUFFIX` 로 prompt 기반 JSON 강제. **실행 결과**: Topic Newsroom completed(run `2026-05-25T05-52-32_4c4f0b29`, 3 호출, 한글 출력 보존, final_topic.title="편의점 신상 디저트, 우리 가족 최애템 TOP5"). Content Newsroom completed(run `2026-05-25T05-53-50_7eba2b37`, iter 1→2→3 approved, Editor 자체 approved=orchestrator coerce 미발생, DA critique 5→3→1·pass False→False→True 라운드별 차등 실측 검증, 503 1회→retry 정상 흡수). 총 16 API 호출 ~$0.005-0.015. **일관성 체크리스트 전 항목 통과**(trending_topics 3개·verdict.top_choice 매칭·final_topic 키 누락 없음·Writer fact_claims·FC `[출처:]` 마커·DA critical_issues=5·pass_threshold bool·Editor decision enum). **신규 P0 차단 0건**, P2 관찰 1건(FC iter3 verification_log 비어있음 — Writer iter3에서 fact_claims 제거됐을 가능성), P3 정보 1건(503 retry로 흡수). **학습**: SDK·모델·API 표면처럼 빠르게 변하는 부분은 명세서 작성 시 최신 docs 확인 필수. 조기 통합으로 Step 3-3 진입 전 통합 위험 제거. | Step 3-3(Game-ifier + 전체 통합) 진입 가능. P2 관찰 1건은 prompt 패치 차원에서 별도 검토 (차단 아님) |
 | 2026-05-25 | **묶음 2 Step 3-3 완료: Game-ifier + FullPipeline + 9 에이전트 E2E 완주**. 설계 결정 3건: (1) 통합 범위 CLI 만 (FastAPI/UI 는 묶음 3) (2) 실제 LLM E2E 전체 9 에이전트 실행 (발표용 메타 산출물 1호 확보) (3) HTML 검증은 브라우저 (final_output.html 스탠드얼론 래퍼). **Gameifier**: Format Architect → HTML Builder 단방향, 실패 시 `_fallback_html`(Editor.final_content 를 plain HTML 변환 + known_weaknesses 노출). **FullPipeline**: 단일 TraceLogger 로 3 Newsroom 통합, base_order 자동 분배(1-3 / 4-7 iter suffix / 8-9). **단위 테스트 10건 추가** (gameifier 6 + full_pipeline 4) — 전체 회귀 **36건 통과** (명세서 표기 37건은 카운트 오차, 실제 36건). **실제 LLM E2E 1회 완주** (run `2026-05-25T06-16-20_1bc88d21`, 카테고리 맛집): status=completed, 17 trace 파일, duration 372초, 18 호출(1× 503 retry 흡수), Stage 2 iter 3 자체 approved(orchestrator coerce 미발생, DA 5→3→1·pass False→False→True), **Format Architect 가 CALCULATOR 인터랙티브 자체 선택**(type=C, base=A), HTML Builder 3 subs·0 preserved·0 warnings. final_output.html 6664 bytes: mathjs CDN·data-input-id·plustab-interactive 모두 존재, `[출처:]` inline 마커 5개, 한국어 보존, charset utf-8. **최종 제목**: "가족 식비, 매달 50만원 아끼는 법". 신규 P0/P1 0건, P2 1건(FC iter 3 verification_log=[] 패턴 재발), P3 1건(503 retry 흡수). | 9 에이전트 실제 LLM 통합 첫 완주. **발표용 메타 산출물 1호** = `runs/2026-05-25T06-16-20_1bc88d21/` 전체. 묶음 3(FastAPI + Next.js UI) 진입 가능. 잔여 Phase 2 항목: Judge Panel + 콘솔 e2e 통합 테스트 |
+| 2026-05-28 | **B3-S3-C 트레이스 뷰어 완료**: `/run/[id]` 페이지 본격 구현 (3-컬럼: StagePanel · ChatStream · NowPlayingPanel · PlaybackToggle). 결정 5건: (1) **페르소나 키 = ChatMessage.agent_id 짧은 형태**(`scout`/`writer`/...) — 기존 trace_converter / `AgentId` 타입과 호환, 풀네임은 `aliases` 로 흡수 (2) **humanizer 룰베이스**(md5 시드 결정론) — personas.yaml 의 prefix/suffix 옵션을 raw 텍스트 해시로 선택, `_MAX_LEN=280` 캡 (3) **humanized 필드는 ChatMessage 에 옵셔널 추가**(default `""`) — RunDetail/recentRuns 회귀 없음 확인 (4) **SSE 이벤트명은 백엔드 현실 채택**(`chat`/`pipeline_start`/`pipeline_complete`/`cost_update`) — 명세 §6-1 의 `agent_start`/`chat_message`/`agent_end`/`run_complete` 는 미존재이므로 hook 에서 백엔드 이벤트명에 맞춤 (5) **테스트 위치는 `backend/tests/api/`**(`pyproject.toml` 의 testpaths 와 일치, 명세 §11 의 `tests/test_*.py` 는 pytest 미수집 경로). **신규 단위 테스트 12건 PASS** (humanizer 8 + personas API 4), 전체 API 회귀 33건 PASS. **`npm run build` 통과**(타입 에러 0, `/run/[id]` 5.73 kB). 변경 파일: backend 6(personas.yaml/humanizer.py/trace_converter.py/schemas/trace.py/routers/personas.py/main.py) + 테스트 2 + frontend 7(lib/personas.ts·api.ts·hooks/useRunStream.ts·components/run/4종·app/run/[id]/page.tsx). | B3-S3-D(Judge 시각화)·B3-S3-E(Persona Lab UI) 진입 가능. 수동 검증(§12) 사용자 직접 수행 필요 |
 
 ---
 
