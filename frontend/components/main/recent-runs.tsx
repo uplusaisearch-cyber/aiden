@@ -18,17 +18,15 @@ function scoreColor(weighted: number) {
   return "var(--state-danger)";
 }
 
-function statusVariant(status: MockRecentRun["status"]) {
-  switch (status) {
-    case "completed":
-      return { label: "완료", color: "var(--state-success)" };
-    case "partial":
-      return { label: "부분", color: "var(--state-warning)" };
-    case "failed":
-      return { label: "실패", color: "var(--state-danger)" };
-    case "running":
-      return { label: "진행", color: "var(--state-info)" };
-  }
+// 백엔드는 RunStatus union 외 값(예: "failed_stage_1", "unknown")도 보낼 수 있으므로
+// 알 수 없는 상태는 회색 폴백으로 표시 — UI 가 절대 크래시하지 않게.
+function statusVariant(status: string) {
+  if (status === "completed") return { label: "완료", color: "var(--state-success)" };
+  if (status === "partial") return { label: "부분", color: "var(--state-warning)" };
+  if (status === "running") return { label: "진행", color: "var(--state-info)" };
+  if (status === "failed" || status.startsWith("failed"))
+    return { label: "실패", color: "var(--state-danger)" };
+  return { label: status || "—", color: "var(--text-muted)" };
 }
 
 export function RecentRuns({ runs }: Props) {
@@ -66,7 +64,7 @@ export function RecentRuns({ runs }: Props) {
                     className="font-korean text-xs"
                     style={{ borderColor: "var(--border-strong)" }}
                   >
-                    {CATEGORY_LABEL_MAP[run.category]}
+                    {CATEGORY_LABEL_MAP[run.category] ?? run.category ?? "—"}
                   </Badge>
                   <Badge
                     variant="outline"
