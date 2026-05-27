@@ -26,6 +26,7 @@ class ChatMessage(BaseModel):
     duration_ms: int = 0
     headline: str = ""
     body_text: str = ""
+    humanized: str = ""   # B3-S3-C: 페르소나 사람말투 변환 결과 (트레이스 뷰어 채팅 버블)
     raw_json: dict[str, Any] = {}
     highlights: list[Highlight] = []
     badges: list[Badge] = []

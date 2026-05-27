@@ -14,6 +14,8 @@ import logging
 from typing import Any, Callable
 from uuid import uuid4
 
+from backend.api.services.humanizer import humanize
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +38,7 @@ def _msg_id() -> str:
 
 
 def _base(agent_id: str, raw: dict, stage: int) -> dict[str, Any]:
-    """공통 필드."""
+    """공통 필드. humanized 는 후처리(_apply_humanized) 에서 채움."""
     return {
         "id": _msg_id(),
         "agent_id": agent_id,
@@ -46,10 +48,35 @@ def _base(agent_id: str, raw: dict, stage: int) -> dict[str, Any]:
         "duration_ms": raw.get("duration_ms", 0),
         "headline": "",
         "body_text": "",
+        "humanized": "",
         "raw_json": raw.get("output") or {},
         "highlights": [],
         "badges": [],
     }
+
+
+def _apply_humanized(msg: dict[str, Any], raw: dict[str, Any]) -> None:
+    """ChatMessage 에 humanized 필드 채우기.
+
+    humanizer 는 personas.yaml 의 키(짧은 id) 로 조회.
+    judge-* 는 personas.yaml 에 없으므로 prefix/suffix 없는 summary 만 적용 (안전 폴백).
+    실패 시 headline 만 그대로 사용 → 메인 흐름 차단 금지.
+    """
+    try:
+        source_text = (msg.get("headline") or "").strip()
+        body = (msg.get("body_text") or "").strip()
+        if body:
+            source_text = f"{source_text} {body}".strip()
+        if not source_text:
+            return
+        msg["humanized"] = humanize(
+            msg.get("agent_id", ""),
+            source_text,
+            raw.get("iteration"),
+        )
+    except Exception as e:  # noqa: BLE001 — humanizer 실패가 SSE 흐름을 막지 않게
+        logger.warning("humanize 실패 (agent=%s): %s", msg.get("agent_id"), e)
+        msg.setdefault("humanized", msg.get("headline") or "")
 
 
 # =====================================================================
@@ -282,12 +309,18 @@ def convert(raw: dict[str, Any]) -> list[dict[str, Any]]:
         # 미정의 에이전트는 generic message 1개
         msg = _base(agent_name or "unknown", raw, stage=0)
         msg["headline"] = raw.get("highlight") or f"{agent_name} 완료"
+        _apply_humanized(msg, raw)
         return [msg]
     try:
-        return fn(raw)
+        messages = fn(raw)
     except Exception as e:  # noqa: BLE001 — 변환 실패가 SSE 흐름 막지 않게
         logger.warning("trace_converter %s 실패: %s", agent_name, e)
         msg = _base(agent_name, raw, stage=0)
         msg["headline"] = "(변환 실패) " + (raw.get("highlight") or agent_name)
         msg["body_text"] = str(e)
+        _apply_humanized(msg, raw)
         return [msg]
+
+    for m in messages:
+        _apply_humanized(m, raw)
+    return messages

@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.deps import get_run_manager, get_sse_broker, get_uptime_sec
-from backend.api.routers import generate, judges, prompts, runs, stream
+from backend.api.routers import generate, judges, personas, prompts, runs, stream
 from backend.api.services.run_manager import RunManager
 from backend.api.services.sse_broker import SSEBroker
 
@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
     app.include_router(stream.router)
     app.include_router(prompts.router)
     app.include_router(judges.router)
+    app.include_router(personas.router)
 
     @app.get("/api/health", tags=["health"])
     async def health(
