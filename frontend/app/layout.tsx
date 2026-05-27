@@ -34,7 +34,7 @@ export default function RootLayout({
     >
       <head>
         <link rel="stylesheet" href={pretendardCdn} />
-        <style>{`:root { --font-pretendard: "Pretendard Variable", Pretendard, -apple-system, sans-serif; }`}</style>
+        {/* --font-pretendard 변수는 globals.css :root 에서 정의 — 인라인 <style> 은 SSR 큰따옴표 인코딩으로 hydration mismatch 유발 */}
       </head>
       <body className="bg-bg-primary text-text-primary antialiased font-korean">
         <Providers>{children}</Providers>

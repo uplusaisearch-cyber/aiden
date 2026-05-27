@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 :root {
+  /* Fonts — Pretendard 는 CDN link 로 로드 (frontend/app/layout.tsx 의 <link> 참조).
+     인라인 <style> 로 정의하면 React SSR 이 큰따옴표를 &quot; 로 인코딩해 hydration mismatch 발생. */
+  --font-pretendard: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+
   /* Base (다크모드 기본값) */
   --bg-primary: #0a0a0b;
   --bg-secondary: #131316;
