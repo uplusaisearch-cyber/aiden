@@ -65,6 +65,8 @@ export interface ChatMessage {
   duration_ms: number;
   headline: string;
   body_text: string;
+  /** B3-S3-C: 페르소나 사람말투 변환 결과 (트레이스 뷰어 채팅 버블 본문) */
+  humanized: string;
   raw_json: Record<string, unknown>;
   highlights: Array<{ label: string; value: string | number }>;
   badges: Array<{ label: string; value: string; color?: string }>;
