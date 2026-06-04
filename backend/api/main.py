@@ -24,6 +24,7 @@ load_dotenv(dotenv_path=_PROJECT_ROOT / ".env")
 
 from fastapi import Depends, FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from backend.api.deps import get_run_manager, get_sse_broker, get_uptime_sec  # noqa: E402
 from backend.api.routers import generate, judges, personas, prompts, runs, stream  # noqa: E402
@@ -79,6 +80,12 @@ def create_app() -> FastAPI:
     app.include_router(prompts.router)
     app.include_router(judges.router)
     app.include_router(personas.router)
+
+    # /runs/<id>/final_output.html 정적 노출 (iframe 미리보기용).
+    # StaticFiles 는 mount 디렉터리 외부로의 path traversal 을 자체 차단.
+    runs_dir = _PROJECT_ROOT / "runs"
+    if runs_dir.exists():
+        app.mount("/runs", StaticFiles(directory=str(runs_dir)), name="runs")
 
     @app.get("/api/health", tags=["health"])
     async def health(

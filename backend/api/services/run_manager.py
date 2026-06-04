@@ -35,6 +35,25 @@ CATEGORY_LABEL: dict[str, str] = {
 PIPELINE_TIMEOUT_SEC = 20 * 60  # 20분
 
 
+def _apply_standalone_html_wrapper(category: str, final_html: str) -> str:
+    # NOTE: must produce byte-identical output with scripts/run_full_pipeline.py wrapper.
+    return (
+        "<!DOCTYPE html>\n"
+        '<html lang="ko"><head><meta charset="utf-8">'
+        f"<title>{category} - AIDEN 산출물</title>"
+        "<style>"
+        "body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;"
+        "max-width:680px;margin:0 auto;padding:20px;line-height:1.7;color:#222;}"
+        "h1{font-size:24px;}h2{font-size:18px;margin-top:32px;}"
+        ".sources{margin-top:32px;padding:16px;background:#f7f7f7;border-radius:8px;}"
+        ".known-weaknesses{margin-top:16px;padding:16px;background:#fff4f4;"
+        "border-left:4px solid #c00;}"
+        "</style></head><body>\n"
+        f"{final_html}\n"
+        "</body></html>"
+    )
+
+
 def make_session_id() -> str:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
     return f"{ts}_{uuid4().hex[:8]}"
@@ -166,6 +185,20 @@ class RunManager:
             target_category_label = custom_topic
 
         result = await asyncio.to_thread(pipeline.run, target_category_label)
+
+        # final_output.html 저장 (Judge Panel 평가·iframe 미리보기에 필수)
+        # CLI scripts/run_full_pipeline.py 과 결과 동일해야 함 (수동 diff 로 검증).
+        final_html = result.get("final_html")
+        if final_html:
+            try:
+                final_path = tracer.run_dir / "final_output.html"
+                final_path.write_text(
+                    _apply_standalone_html_wrapper(target_category_label, final_html),
+                    encoding="utf-8",
+                )
+                logger.info("final_output.html 저장: %s", final_path)
+            except OSError as e:
+                logger.error("final_output.html 저장 실패: %s", e)
 
         # metadata 기록 + Stage 4 결과 병합
         tracer.write_metadata(
