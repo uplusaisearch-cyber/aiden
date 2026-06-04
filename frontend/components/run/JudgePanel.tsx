@@ -101,6 +101,49 @@ function JudgePanelSkeleton() {
   );
 }
 
+function JudgePanelPending() {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center">
+      <div
+        className="mb-4 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+        style={{
+          background: "var(--bg-elevated)",
+          color: "var(--text-muted)",
+        }}
+      >
+        ⏳
+      </div>
+      <p
+        className="text-sm font-semibold"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        3-Model Judge Panel 평가 대기 중
+      </p>
+      <p
+        className="mt-1 max-w-md text-xs leading-relaxed"
+        style={{ color: "var(--text-muted)" }}
+      >
+        9 에이전트 파이프라인이 끝나면 Gemini · GPT · Claude 가 동시에 결과물을
+        채점합니다. 완료 후 자동으로 표시됩니다.
+      </p>
+      <div className="mt-4 flex items-center gap-1.5">
+        <span
+          className="h-1.5 w-1.5 animate-pulse rounded-full"
+          style={{ background: "var(--accent-pink)" }}
+        />
+        <span
+          className="h-1.5 w-1.5 animate-pulse rounded-full"
+          style={{ background: "var(--accent-pink)", animationDelay: "200ms" }}
+        />
+        <span
+          className="h-1.5 w-1.5 animate-pulse rounded-full"
+          style={{ background: "var(--accent-pink)", animationDelay: "400ms" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function JudgePanelError({ message }: { message: string }) {
   return (
     <div
@@ -123,13 +166,20 @@ export function JudgePanel({ runId }: Props) {
   const { data, isLoading, error } = useQuery<JudgeResult>({
     queryKey: ["judge", runId],
     queryFn: () => fetchJudge(runId),
-    retry: 1,
+    retry: false,
+    // 진행 중 run: judge_panel.json 이 생길 때까지 자동 폴링 (15초 간격, 최대 20분)
+    refetchInterval: (query) => (query.state.data ? false : 15_000),
     staleTime: 60_000,
   });
 
   if (isLoading) return <JudgePanelSkeleton />;
   if (error || !data) {
-    return <JudgePanelError message={error instanceof Error ? error.message : "unknown"} />;
+    const message = error instanceof Error ? error.message : "unknown";
+    // 백엔드 detail "judge_panel.json 없음" — pipeline 진행 중이거나 Stage 4 미완료
+    if (message.includes("judge_panel.json")) {
+      return <JudgePanelPending />;
+    }
+    return <JudgePanelError message={message} />;
   }
 
   return (
