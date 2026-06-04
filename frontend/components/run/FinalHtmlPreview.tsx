@@ -30,7 +30,7 @@ function Skeleton() {
   );
 }
 
-function NotAvailable({ message }: { message?: string }) {
+function NotAvailable({ message, polling }: { message?: string; polling?: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center">
       <div
@@ -40,20 +40,41 @@ function NotAvailable({ message }: { message?: string }) {
           color: "var(--text-muted)",
         }}
       >
-        📄
+        {polling ? "⏳" : "📄"}
       </div>
       <p
         className="text-sm font-semibold"
         style={{ color: "var(--text-secondary)" }}
       >
-        최종 콘텐츠가 아직 준비되지 않았습니다.
+        {polling
+          ? "최종 콘텐츠 준비 중"
+          : "최종 콘텐츠가 아직 준비되지 않았습니다."}
       </p>
       <p
-        className="mt-1 text-xs"
+        className="mt-1 max-w-md text-xs leading-relaxed"
         style={{ color: "var(--text-muted)" }}
       >
-        {message ?? "파이프라인이 완료된 후 다시 확인해주세요."}
+        {message ??
+          (polling
+            ? "9 에이전트 파이프라인이 끝나면 자동으로 iframe 미리보기로 전환됩니다."
+            : "파이프라인이 완료된 후 다시 확인해주세요.")}
       </p>
+      {polling && (
+        <div className="mt-4 flex items-center gap-1.5">
+          <span
+            className="h-1.5 w-1.5 animate-pulse rounded-full"
+            style={{ background: "var(--accent-pink)" }}
+          />
+          <span
+            className="h-1.5 w-1.5 animate-pulse rounded-full"
+            style={{ background: "var(--accent-pink)", animationDelay: "200ms" }}
+          />
+          <span
+            className="h-1.5 w-1.5 animate-pulse rounded-full"
+            style={{ background: "var(--accent-pink)", animationDelay: "400ms" }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -62,8 +83,12 @@ export function FinalHtmlPreview({ runId }: Props) {
   const { data, isLoading, error } = useQuery<FinalHtmlMeta>({
     queryKey: ["final-html", runId],
     queryFn: () => fetchFinalHtmlMeta(runId),
-    retry: 1,
-    staleTime: 30_000,
+    retry: false,
+    // 진행 중 run: final_output.html 이 생길 때까지 자동 폴링 (15초 간격).
+    // available:true 도착 시 자동 정지 → 완료된 run 에서는 1회만 fetch.
+    refetchInterval: (query) =>
+      query.state.data?.available ? false : 15_000,
+    staleTime: 60_000,
   });
 
   if (isLoading) return <Skeleton />;
@@ -74,7 +99,7 @@ export function FinalHtmlPreview({ runId }: Props) {
       />
     );
   }
-  if (!data?.available || !data.url) return <NotAvailable />;
+  if (!data?.available || !data.url) return <NotAvailable polling />;
 
   const src = `${API_BASE}${data.url}`;
   const sizeKB = data.size_bytes != null ? (data.size_bytes / 1024).toFixed(1) : "?";
