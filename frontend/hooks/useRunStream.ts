@@ -91,16 +91,19 @@ export function useRunStream(runId: string): RunState {
     let cancelled = false;
     let unsubscribe: (() => void) | null = null;
 
-    // 메시지 id 기준 dedupe — fetch 와 SSE 가 boundary 에서 겹칠 경우 방어
-    const seenIds = new Set<string>();
+    // 메시지 id 기준 dedupe — fetch 와 SSE 가 boundary 에서 겹칠 경우 방어.
+    // setState updater 안에서 호출되므로 반드시 pure 해야 한다. React Strict Mode 가
+    // dev 에서 updater 를 2 회 호출해 순수성을 검사하는데, 외부 Set 을 mutate 하면
+    // 2 번째 호출이 첫 번째 결과를 dedupe 해 messages 가 빈 배열로 끝난다 (라이브 화면 멈춤 root cause).
     const appendUnique = (
       prev: ChatMessage[],
       next: ChatMessage[],
     ): ChatMessage[] => {
+      const existing = new Set(prev.map((m) => m.id).filter(Boolean));
       const merged = prev.slice();
       for (const m of next) {
-        if (m.id && seenIds.has(m.id)) continue;
-        if (m.id) seenIds.add(m.id);
+        if (m.id && existing.has(m.id)) continue;
+        if (m.id) existing.add(m.id);
         merged.push(m);
       }
       return merged;
@@ -171,9 +174,6 @@ export function useRunStream(runId: string): RunState {
       try {
         const detail = await fetchRunDetail(runId);
         if (cancelled) return;
-        // 메시지 dedup set 초기화
-        seenIds.clear();
-        for (const m of detail.messages) if (m.id) seenIds.add(m.id);
 
         const derived = deriveFromMessages(detail.messages);
         const startedAtMs = detail.started_at
@@ -207,7 +207,7 @@ export function useRunStream(runId: string): RunState {
         if (!terminal) {
           subscribeLive(startedAtMs);
         }
-      } catch (e: unknown) {
+      } catch (_e: unknown) {
         if (cancelled) return;
         // 404 등 fetch 실패 — 신규 라이브 run 가능성 → SSE 시도
         // (실패 원인이 진짜 네트워크 에러면 SSE 도 실패할 텐데, 그건 onError 에서 잡힘)

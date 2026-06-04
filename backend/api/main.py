@@ -13,20 +13,33 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+# .env 로드는 다른 모듈 import 보다 먼저 수행해야 함 — 하위 모듈이 import 시점에
+# 환경변수를 캐싱할 수 있고, uvicorn --reload subprocess 도 이 파일을 재 import 함.
+from dotenv import load_dotenv
 
-from backend.api.deps import get_run_manager, get_sse_broker, get_uptime_sec
-from backend.api.routers import generate, judges, personas, prompts, runs, stream
-from backend.api.services.run_manager import RunManager
-from backend.api.services.sse_broker import SSEBroker
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=_PROJECT_ROOT / ".env")
+
+from fastapi import Depends, FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+
+from backend.api.deps import get_run_manager, get_sse_broker, get_uptime_sec  # noqa: E402
+from backend.api.routers import generate, judges, personas, prompts, runs, stream  # noqa: E402
+from backend.api.services.run_manager import RunManager  # noqa: E402
+from backend.api.services.sse_broker import SSEBroker  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
 
 def _cors_origins() -> list[str]:
-    raw = os.getenv("API_CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+    # 127.0.0.1 / localhost 양쪽 모두 허용 — 브라우저 origin 매칭은 hostname 문자열 일치라
+    # 두 표기는 별개 origin 으로 취급된다. 둘 다 명시하지 않으면 EventSource 가 silent fail.
+    raw = os.getenv(
+        "API_CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+    )
     return [o.strip() for o in raw.split(",") if o.strip()]
 
 
@@ -55,7 +68,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )

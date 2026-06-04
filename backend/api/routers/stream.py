@@ -5,7 +5,6 @@ TraceLogger 가 publish 하는 raw payload 를 trace_converter 로 변환해
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from typing import AsyncIterator
@@ -46,20 +45,14 @@ async def stream(
         raise HTTPException(status_code=404, detail=f"session_id={session_id} 없음")
 
     async def gen() -> AsyncIterator[bytes]:
-        sub = broker.subscribe(session_id)
-        # 초기 ping
+        # heartbeat 은 broker.subscribe 내부에서 처리한다. 외부에서 asyncio.wait_for 로
+        # __anext__() 에 timeout 을 걸면 cancel 이 async generator 를 종료시켜 매 HEARTBEAT_SEC
+        # 마다 stream 이 끊긴다 (B3-S3-C 라이브 SSE 30초 끊김 root cause).
+        sub = broker.subscribe(session_id, heartbeat_sec=HEARTBEAT_SEC)
         yield _sse_format("ping", {"ts": "ready"}).encode("utf-8")
+        events_sent = 0
         try:
-            while True:
-                try:
-                    msg = await asyncio.wait_for(sub.__anext__(), timeout=HEARTBEAT_SEC)
-                except asyncio.TimeoutError:
-                    # heartbeat
-                    yield _sse_format("ping", {}).encode("utf-8")
-                    continue
-                except StopAsyncIteration:
-                    break
-
+            async for msg in sub:
                 event = msg.get("event", "message")
                 data = msg.get("data") or {}
 
@@ -69,13 +62,19 @@ async def stream(
                         chat_messages = convert_trace(data)
                         for cm in chat_messages:
                             yield _sse_format("chat", cm).encode("utf-8")
+                            events_sent += 1
                     except Exception as e:  # noqa: BLE001
                         logger.warning("convert_trace 실패: %s", e)
                         yield _sse_format("error", {"error_message": str(e)}).encode("utf-8")
                 else:
-                    # 그 외 이벤트는 그대로 forward
+                    # 그 외 이벤트는 그대로 forward (heartbeat ping 포함)
                     yield _sse_format(event, data).encode("utf-8")
+                    events_sent += 1
         finally:
+            logger.info(
+                "SSE stream closed session=%s events_sent=%d",
+                session_id, events_sent,
+            )
             try:
                 await sub.aclose()
             except Exception:
