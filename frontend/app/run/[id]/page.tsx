@@ -12,6 +12,7 @@ import { StagePanel } from "@/components/run/StagePanel";
 import { ChatStream } from "@/components/run/ChatStream";
 import { NowPlayingPanel } from "@/components/run/NowPlayingPanel";
 import { PlaybackToggle } from "@/components/run/PlaybackToggle";
+import { BottomTabs } from "@/components/run/BottomTabs";
 
 export default function RunPage() {
   const params = useParams<{ id: string }>();
@@ -103,47 +104,53 @@ export default function RunPage() {
   }
 
   return (
-    <main className="grid h-screen grid-cols-1 gap-4 p-4 lg:grid-cols-[280px_1fr_320px]">
-      <aside className="overflow-y-auto rounded-lg border border-border-subtle bg-bg-primary p-3">
-        <StagePanel
-          personasData={personas}
-          currentAgent={run.currentAgent}
-          completedAgents={completedAgents}
-          iterByAgent={iterByAgent}
-        />
-      </aside>
-
-      <section className="flex min-h-0 flex-col rounded-lg border border-border-subtle bg-bg-primary p-3">
-        <header className="mb-2 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-korean text-base font-bold text-text-primary">
-              Run {runId.slice(0, 18)}…
-            </h1>
-            <p className="font-mono text-[10px] text-text-muted">
-              {statusLabel(run.status)} · 메시지 {run.messages.length}건
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <PlaybackToggle disabled={!run.isHistorical} />
-            <Link
-              href="/"
-              className="font-korean text-[11px] text-text-secondary hover:text-accent-pink"
-            >
-              ← 메인
-            </Link>
-          </div>
-        </header>
-        <div className="min-h-0 flex-1">
-          <ChatStream
-            messages={run.messages}
-            personas={personas.personas}
+    <main className="min-h-screen p-4">
+      {/* 상단 3-컬럼 (B3-S3-C 트레이스 뷰어 — 회귀 0 유지) */}
+      <div className="grid h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[280px_1fr_320px]">
+        <aside className="overflow-y-auto rounded-lg border border-border-subtle bg-bg-primary p-3">
+          <StagePanel
+            personasData={personas}
+            currentAgent={run.currentAgent}
+            completedAgents={completedAgents}
+            iterByAgent={iterByAgent}
           />
-        </div>
-      </section>
+        </aside>
 
-      <aside className="overflow-y-auto rounded-lg border border-border-subtle bg-bg-primary p-3">
-        <NowPlayingPanel run={run} personasData={personas} />
-      </aside>
+        <section className="flex min-h-0 flex-col rounded-lg border border-border-subtle bg-bg-primary p-3">
+          <header className="mb-2 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="font-korean text-base font-bold text-text-primary">
+                Run {runId.slice(0, 18)}…
+              </h1>
+              <p className="font-mono text-[10px] text-text-muted">
+                {statusLabel(run.status)} · 메시지 {run.messages.length}건
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <PlaybackToggle disabled={!run.isHistorical} />
+              <Link
+                href="/"
+                className="font-korean text-[11px] text-text-secondary hover:text-accent-pink"
+              >
+                ← 메인
+              </Link>
+            </div>
+          </header>
+          <div className="min-h-0 flex-1">
+            <ChatStream
+              messages={run.messages}
+              personas={personas.personas}
+            />
+          </div>
+        </section>
+
+        <aside className="overflow-y-auto rounded-lg border border-border-subtle bg-bg-primary p-3">
+          <NowPlayingPanel run={run} personasData={personas} />
+        </aside>
+      </div>
+
+      {/* B3-S3-D — 하단 탭 (판정 + 결과물 미리보기) */}
+      <BottomTabs runId={runId} defaultTab="judge" />
     </main>
   );
 }

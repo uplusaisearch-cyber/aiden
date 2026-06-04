@@ -5,7 +5,11 @@
  * - 모든 fetch 는 에러 시 throw (React Query 에서 retry/error UI 처리)
  * - subscribeRunStream: EventSource 기반 SSE 구독 + 이벤트별 핸들러 등록
  */
-import type { JudgePanelResult } from "@/types/judge";
+import type {
+  FinalHtmlMeta,
+  JudgePanelResult,
+  JudgeResult,
+} from "@/types/judge";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -144,6 +148,18 @@ export interface HealthResponse {
 
 export function fetchHealth(): Promise<HealthResponse> {
   return _fetchJson<HealthResponse>(`${API_BASE}/api/health`);
+}
+
+// ---------------------------------------------------------------
+// B3-S3-D — Judge 시각화 + final HTML 메타
+// ---------------------------------------------------------------
+
+export function fetchJudge(runId: string): Promise<JudgeResult> {
+  return _fetchJson<JudgeResult>(`${API_BASE}/api/runs/${runId}/judge`);
+}
+
+export function fetchFinalHtmlMeta(runId: string): Promise<FinalHtmlMeta> {
+  return _fetchJson<FinalHtmlMeta>(`${API_BASE}/api/runs/${runId}/final-html`);
 }
 
 // ---------------------------------------------------------------
