@@ -143,7 +143,9 @@ class RunManager:
             main_loop=main_loop,
             session_id=session_id,
         )
-        client = GeminiClient(model="gemini-2.5-flash")
+        # 모델 체인은 GeminiClient default 또는 AIDEN_GEMINI_MODELS 환경변수 사용.
+        # 503 만성 시 자동 폴백 (gemini-2.5-flash → gemini-2.5-flash-lite).
+        client = GeminiClient()
         agents = build_all_agents(client)
 
         judge_panel = None
