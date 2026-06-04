@@ -32,6 +32,6 @@ def get_final_html_meta(session_id: str) -> dict:
         return {"available": False, "url": None, "size_bytes": None}
     return {
         "available": True,
-        "url": f"/runs/{session_id}/final_output.html",
+        "url": f"/api/runs/{session_id}/output",
         "size_bytes": final_path.stat().st_size,
     }

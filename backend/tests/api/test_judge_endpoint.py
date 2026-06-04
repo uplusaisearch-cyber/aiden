@@ -217,5 +217,5 @@ class TestJudgeEndpoint:
         assert r.status_code == 200
         body = r.json()
         assert body["available"] is True
-        assert body["url"] == f"/runs/{sid}/final_output.html"
+        assert body["url"] == f"/api/runs/{sid}/output"
         assert body["size_bytes"] > 0

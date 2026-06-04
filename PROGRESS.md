@@ -5,7 +5,7 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-04 |
+| **마지막 업데이트** | 2026-06-05 |
 | **전체 진행률** | **100.0%** (50/50 항목 완료) |
 | **현재 Phase** | Phase 4 거의 완료 — B3-S3-D Judge 시각화 + 최종 콘텐츠 iframe 통합 작업 완료. 잔여: 어드민 prompt 편집기 (cut 결정), 발표 자료 |
 
@@ -153,3 +153,4 @@
 - **2026-05-25 · 묶음 3 Step 1 완료 시점 신규 누적 이슈 4건 (#W-fc-empty, #docs-path-mismatch, #windows-tmp-path, #da-iter3-regression) · 영향도 혼합** — 상세는 `docs/issues/2026-05-25_open_issues.md` 참조.
 - **2026-06-04 · B3-S3-C 라이브 검증 종합 fix · 영향도 높음 · ✅ 해소(2026-06-04, commits 4332407 · 87653d2 · 2d7dfb1)** — 라이브 SSE 30초 끊김 + 화면 멈춤(Strict Mode impure updater) + Gemini 503/빈응답 폴백 부재 + production build prerender 실패 4건 종합 해소. closed 이슈 3건(#W-sse-cors-blocked, #W-sse-30s-disconnect, #W-usestream-impure-updater) 진단 흐름 `docs/issues/2026-05-25_open_issues.md` 에 기록.
 - **2026-06-04 · #W-sse-pipeline-complete-reconnect · 영향도 낮음 · 미해소** — `pipeline_complete` 후 백엔드 `broker.close()` → buffer 30분 TTL 남김 → native EventSource 가 connection 종료 감지 → **자동 reconnect** → buffer 전체 replay 후 또 close → 무한 루프. `useRunStream` 은 `pipeline_complete` 리스너 안에서 `es.close()` 호출하므로 안 깨지지만, 직접 EventSource 사용 시나리오(진단 콘솔 등) 에서 백엔드 부하 우려. 별건 commit 으로 처리 예정 (예: subscribe `already_closed` 분기에서 SSE 응답 `retry: -1` 헤더 추가하거나 close sentinel 을 buffer 끝에 두기).
+- **2026-06-05 · final-html iframe 404 (배포) · 영향도 높음 · ✅ 해소** — 컨테이너 기동 시 runs/ 부재로 /runs StaticFiles mount 스킵 → 메타 url 을 /api/runs/{id}/output 으로 일원화. judges.py:35.
