@@ -39,7 +39,7 @@ export interface RunState {
   totalTokens: number;             // 백엔드가 cost_update 에 토큰을 넘기지 않으면 0 유지
   totalCostUSD: number;
   error: string | null;
-  /** 과거 run(완료/실패) 여부. PlaybackToggle 등에서 사용. */
+  /** 과거 run(완료/실패) 여부. */
   isHistorical: boolean;
 }
 

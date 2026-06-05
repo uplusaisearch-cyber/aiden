@@ -309,7 +309,7 @@ stages:
     stage_no: 2
     agents: ["writer", "factchecker", "devils", "editor"]
   gameifier:
-    display_name: "Game-ifier"
+    display_name: "인터랙티브 빌더"
     subtitle: "인터랙티브 변환"
     emoji: "🎮"
     stage_no: 3
