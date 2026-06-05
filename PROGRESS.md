@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-05 폴리싱 2차 (run UI 3건 — PlaybackToggle 제거 · ← 메인 좌상단 · Game-ifier→인터랙티브 빌더) 완료 |
-| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** (run UI 3건) |
-| **현재 Phase** | Phase 1~4 본구현 완료, Phase 5 배포·라이브 검증 완료. **마감 2026-06-08** 잔여: 운영 종단 회귀(commits 9ae0424·fa7f1e1·402dfaf·3c1e5d0·ffe450a·fa08969 반영 후 1 run), 발표/결선 PT 자료(별도 채팅), (여유 시) Format Architect 인터랙티브 강화 |
+| **마지막 업데이트** | 2026-06-05 outputs.db 영속화 + 메인 카드 MOCK fallback 제거 (4분기 상태 분기 + placeholderData 깜빡임 방지) 완료 |
+| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** + 메인 카드 MOCK 제거 **1/1** |
+| **현재 Phase** | Phase 1~4 본구현 완료, Phase 5 배포·라이브 검증 완료. **마감 2026-06-08** 잔여: (a) Railway Volume 마운트 + redeploy 영속 검증(콘솔 수동), (b) 운영 종단 회귀, (c) 발표/결선 PT 자료(별도 채팅), (d) 여유 시 Format Architect 인터랙티브 강화 |
 
 ---
 
@@ -120,7 +120,9 @@
 - [x] **global-error.tsx 최후 경계** — `app/global-error.tsx` 신규(인라인 minimal style, system-ui, 자체 `<html><body>`). `reset()` 미사용 + `window.location.reload()` (global 상황 회복 불가 케이스 대비). 새로고침 버튼 1개에만 브랜드 핑크 액센트. `error.tsx`/`not-found.tsx` 는 commit 2d7dfb1 본구현 그대로 유지(명세 요구사항 이미 충족) _(2026-06-05, commit 3c1e5d0)_
 - [x] **토큰·비용 실측 종속 저장** — `cost_tracker._runs[run_id]` 에 `prompt_tokens`/`completion_tokens` 필드, `record()` 시그니처에 토큰 keyword 인자. `llm_clients.py:338` 호출에서 SDK 실측 토큰(`p_tok`/`c_tok`) 전달. `trace_logger.write_metadata(cost_summary=)` 인자 추가 → `metadata["cost"]` 에 newsroom 실측 + judge 추정 breakdown 저장(`is_actual_tokens` 플래그). `RunDetail.cost: dict \| None` 신규 필드로 API 노출. **NowPlayingPanel 의 UsageCard 제거**(4→3 카드). **SSE 보호 최우선** — `stream.py` / `useRunStream.ts` / `sse_broker.py` diff 0, `onCostUpdate` 리스너+state 필드는 dead 데이터로 유지. backend 49 PASS, npm build PASS _(2026-06-05, commit ffe450a)_
 - [x] **(폴리싱 2차)** UI 3건 — PlaybackToggle 컴포넌트 삭제 (no-op 토글 제거) / ← 메인을 헤더 우측 → 풀폭 슬림 top bar 좌상단 (가운데 헤더 좌측 단일 정렬로 정리) / `personas.yaml` `stages.gameifier.display_name` "Game-ifier" → "인터랙티브 빌더" (internal key 불변). 에러/폴백 ← 메인 4곳(`run/[id]:64,99` / `error.tsx:46` / `not-found.tsx:20`) 보존. npm run build PASS _(2026-06-05, commit fa08969)_
-- [ ] (마감 점검) 배포 안정성 — 운영 환경에 fa7f1e1·402dfaf·3c1e5d0·ffe450a 반영 후 1 run 회귀 (발화 다양성·모달·Judge 앵커·`metadata.cost` 섹션 + `RunDetail.cost` 종단 검증)
+- [x] **출력 히스토리 영속화 (outputs.db + /admin/runs)** — SQLite 단일 파일 스토어(`backend/storage/outputs_store.py`, env `OUTPUTS_DB_PATH`, UPSERT, 모든 예외 격리). `run_manager` `write_metadata` 직후 적재 — **정상 종료 AND `final_html` 있을 때만**(실패/timeout 등 미적재). topic=planner.final_topic.title, weighted_score/mean_scores 5축, total_tokens/total_cost_usd, `cost_is_estimated=judge.is_actual_tokens=False` 매핑. `GET /api/outputs` / `/{id}` / `/{id}/download` (RFC 6266 한글 파일명). 프론트: `/admin/runs` 페이지(iframe srcDoc 미리보기 + .html 다운로드 + `est` 배지), AdminSidebar `🗂️ 출력 히스토리` 추가, 메인 카드 소스 `fetchRecentRuns(5)` → `fetchOutputs(6)`, 클릭 `/admin/runs?preview=<id>`(Suspense 경계). `runs/` → `/runs/` gitignore 루트 anchor 패치(`frontend/app/admin/runs/` 보호). **라이브 SSE 경로 무변경**. backend pytest 56/56 PASS, npm run build PASS. 명세 `docs/patches/2026-06-05_output-history-persistence.md`, commits `3ddc520`(backend) + `848202b`(frontend) + `88d14bb`(gitignore) + `02785b2`(명세). **Railway Volume 마운트 + redeploy 영속 검증은 콘솔에서 수동 진행** _(2026-06-05)_
+- [x] **메인 카드 MOCK fallback 제거 + 상태 분기** — `MOCK_RECENT_RUNS` (더미 5건) 가 로딩 중/빈 DB 분기에 노출돼 새로고침마다 가짜 데이터가 깜빡이던 문제 해소(발표 시 가짜 데이터 오인 리스크). `app/page.tsx` MOCK import 제거 + fallback 분기 제거, `useQuery` 에 `placeholderData: (prev) => prev` 추가(재요청 중 이전 데이터 유지). `components/main/recent-runs.tsx` 4분기 렌더: **데이터 있음 우선** → 카드 / **isLoading + 빈** → 6칸 스켈레톤(animate-pulse, 기존 토큰) / **isError** → 한 줄 안내 / **빈 배열** → "아직 생성된 콘텐츠가 없습니다." `lib/mock-data.ts` 의 `MOCK_RECENT_RUNS` 상수 + unused `MockRecentRun` import 제거(`MOCK_JUDGE_DATA`/`makeMockSessionId` 유지 — 범위 밖). npm run build PASS(11/11 prerender, `/` 11.3 kB) _(2026-06-05)_
+- [ ] (마감 점검) 배포 안정성 — 운영 환경에 fa7f1e1·402dfaf·3c1e5d0·ffe450a·fa08969·3ddc520·848202b·88d14bb 반영 후 1 run 회귀 (발화 다양성·모달·Judge 앵커·`metadata.cost` 섹션 + `RunDetail.cost` + `/admin/runs` 적재 확인 종단 검증)
 - [ ] (여유 시) Format Architect 인터랙티브 요소 지시 강화 — C 타입 채택률·본문 부합도 개선
 - [ ] 발표/결선 PT 자료 — 별도 채팅에서 진행
 
@@ -172,6 +174,8 @@
 | 2026-06-05 | **Part B 콘텐츠 품질 패치 (출처 필터 + Judge 5축 앵커)** — Writer md 에 "출처 채택·배제 규칙"(현재일 이후 미래 날짜 출처 배제, 익명/비특정 도메인 배제(아하·나무위키·개인 블로그 등), 공신력 소스 우선(언론사·공공기관·통계·공식 채널)). Fact-Checker md 에 "출처 위반 강제 적시"(미래 날짜·익명 도메인 → unverified, 사실 오류 → corrected + correction 필드, summary 에 `[출처 위반]` / `[사실 오류]` 형식 명시, **검증 로직 무약화** 명문화). Judge 3개 (`10/11/12`) 에 5축 정성 앵커(`발행 가능 / 주의 / 재작성 필요` 3단계, "70 컷" 같은 수치 표현 미사용). 가중치·산출식·outlier·JSON 출력 스키마 **무변경**. commit fa7f1e1. | 운영 weighted_total 67.2 원인 진단 결과 "콘텐츠가 실제로 약함"(미래 날짜 출처·비공신력 도메인) 우세 → 옵션 B-2 A+B 채택(생성측 + 평가 캘리브레이션). 가중치/컷 조정(C)은 점수 인플레·셀링포인트 훼손 우려로 보류, Judge gating 자체도 현재 코드 미구현이라 별건 안건. |
 | 2026-06-05 | **B3-S3-F 에이전트 상세 모달 (프론트 전용)** — 트레이스 버블 클릭 → 모달, 같은 `agent_id` 의 iter별 메시지를 Base UI `Dialog` + `Tabs` 로 묶음. Writer(본문 word-diff 좌/우 컬럼, LCS 백트래킹 자체 구현 `lib/wordDiff.ts`) / Fact-Checker(verified·unverified·corrected 색구분 카드) / Devils(문제→제안 쌍 카드 + scores 5축 그리드) / Editor(accepted·rejected 2열 + revision_instructions) 전용 렌더러 4종 + 나머지 5종(scout/analyst/planner/architect/builder) `GenericDetail` 공통 카드(중첩 객체 `<details>` 접힘). Judge 버블 미적용(B3-S3-D 별도 시각화 담당). 기존 디자인 토큰·`@base-ui/react` (이미 설치) 사용 — 신규 의존성 0. `ChatStream.tsx` 의 `<pre>` 펼침 제거 + `selectedAgentId` state + 같은 agentId messages 필터. commit 402dfaf (10 files, +1198/-13). | trace_converter 가 raw_json 으로 step output 전체를 ChatMessage 에 실어주는 구조라 추가 API 없이 모달이 데이터 그대로 활용. 발표 시 "Writer가 v1→v3로 글을 어떻게 고쳤나"·"Fact-Checker가 무엇을 걸렀나" 한눈에 보임. type-check + `npm run build` PASS. |
 | 2026-06-05 | **`global-error.tsx` 최후 경계 추가** — `app/global-error.tsx` 신규. 인라인 minimal style(`#0a0a0b`/`#f4f4f5`/system-ui), 자체 `<html lang="ko"><body>`. props 시그니처에서 `reset` 미수신 — global 상황은 layout 자체가 회복 불가일 수 있어 `window.location.reload()` 가 안전. 새로고침 버튼 1개에만 브랜드 핑크(`#ff2e98`) 액센트. `error.tsx`/`not-found.tsx` 는 commit 2d7dfb1 구현이 이미 명세 요구사항 충족 → 무변경 유지. commit 3c1e5d0. | layout/Providers 자체 죽었을 때의 safety net. 마감 6/8 발표 시 "백색 깨진 페이지" 보이는 최악 케이스 방어. 자체 html/body 라 글로벌 토큰·다크 테마·Pretendard 못 받지만 인라인 색·폰트로 사용자 경험 보호 우선. |
+| 2026-06-05 | **메인 카드 MOCK fallback 제거 + 4분기 상태 렌더** — outputs.db 영속화 완료 후 `MOCK_RECENT_RUNS`(B3-S2-E2E 더미 5건)이 로딩 중/빈 DB 분기에 노출돼 새로고침마다 가짜 데이터가 깜빡이던 문제. 발표 시 가짜 카드를 실데이터로 오인할 리스크 + 불필요한 의존성. `app/page.tsx` MOCK import + fallback 분기 제거, `useQuery` `placeholderData: (prev) => prev` 로 재요청 중 이전 데이터 유지(깜빡임 0). `RecentRuns` 컴포넌트가 `isLoading`/`isError`/`errorMessage` props 받아 4분기(데이터/로딩/에러/빈) 직접 렌더. **데이터 있음 우선 분기** 채택 — placeholderData 가 살아있는 한 새로고침 시 카드 그대로, 첫 진입만 스켈레톤. `lib/mock-data.ts` `MOCK_RECENT_RUNS` 상수 (+ unused MockRecentRun import) 제거, `MOCK_JUDGE_DATA`/`makeMockSessionId` 는 범위 밖이라 보존. npm run build PASS. | 영속 DB 가 정상 동작하므로 mock 은 더 이상 필요 없음 + 발표 안정성 우선. 첫 진입 스켈레톤 1회는 의도된 상태 전환(가짜 데이터 깜빡임과 본질적으로 다름). |
+| 2026-06-05 | **출력 히스토리 영속화 (SQLite + Railway Volume)** — 종료된 run 의 **결과 레코드만** 별도 영속 저장 (트레이스/대화 제외, v2 큐). `backend/storage/outputs_store.py` SQLite 단일 파일 스토어 — env `OUTPUTS_DB_PATH` 우선(Railway Volume `/data/outputs.db`), 기본 `backend/.cache/outputs.db`. 스키마 1개 테이블(`outputs` PK=`run_id`, INSERT OR REPLACE UPSERT, idx created_at DESC). 적재 훅 = `run_manager._run_pipeline` 의 `write_metadata` 직후, 조건 `status=="completed" AND wrapped_final_html`. judge 비용 추정(`is_actual_tokens=False`) → `cost_is_estimated=True` 매핑(`est` 배지). 라우터 3개(`/api/outputs`, `/{id}`, `/{id}/download`). 프론트 `/admin/runs` 페이지: 토픽·카테고리·시간·점수(색상)·토큰(k)·비용(`$` + 추정 배지) + 행별 [미리보기]/[다운로드]. 미리보기 = `iframe srcDoc` (sandbox `allow-scripts`만, srcDoc 별도 origin). `?preview=<id>` URL 자동 모달 open(Suspense 경계로 useSearchParams 래핑). 메인 카드 = `fetchOutputs(6)`, cap 6, 클릭 `/admin/runs?preview=<id>` (트레이스 휘발 graceful fallback), 빈 DB 일 때만 MOCK fallback. AdminSidebar 5→6 항목. `runs/` → `/runs/` gitignore 루트 anchor 패치(임의 깊이 `frontend/app/admin/runs/` 무시되던 footgun 해소). 4 커밋 분할(`3ddc520` backend +387/-4, `848202b` frontend +366/-22, `88d14bb` gitignore +2/-2, `02785b2` 명세 +174). backend pytest 56/56 PASS, npm build PASS(11/11 prerender, `/admin/runs` 5.85 kB). **라이브 SSE 경로(`stream.py`/`useRunStream.ts`/`/run/[id]/page.tsx`) diff 0** — 트레이스 뷰어·SSE 회귀 표면 0. 명세 `docs/patches/2026-06-05_output-history-persistence.md`. | "전체 보기" dead link 해소(`/admin/runs` 페이지 실존) + Railway 재배포 휘발 문제의 결과 파트 해소. **트레이스/대화 영속은 v2 보류**(SQLite TEXT/JSON blob 크기·관리비용 vs 결과만 영속의 단순성 트레이드오프 — 결과만 채택). Volume 마운트 + redeploy dry-run 영속 검증은 Kane 콘솔 수동 단계(명세 §7) — 마감 전 1회 통과 필수. |
 | 2026-06-05 | **폴리싱 2차 run UI 3건 완료** — (1) `PlaybackToggle` 컴포넌트 삭제 + `page.tsx` import/사용처 제거 (no-op + "재생" 단어 오독 소지 해결, replay 실 동작은 별건 v2). (2) 정상 라우트 ← 메인을 가운데 헤더 우측 → 풀폭 슬림 top bar 좌상단으로 이동, 가운데 헤더는 `justify-between` → 좌측 단일 정렬로 정리. 에러/폴백 ← 메인 4곳(`run/[id]:64,99` / `error.tsx:46` / `not-found.tsx:20`) 무변경. (3) `personas.yaml` `stages.gameifier.display_name` "Game-ifier" → "인터랙티브 빌더" 1줄. internal key `gameifier` 불변(5개 변경점 회피). 백엔드 docstring/log 의 `Game-ifier` 잔재는 비-display 라 유지. 명세 `docs/patches/2026-06-05_run-ui-cleanup.md`. `npm run build` PASS. commit fa08969(코드 4 files +13/-88) + 1c08389(명세 추가). | 라이브 UI/SSE/그리드/다크모드/회귀 0. 디자인 토큰·shadcn·브랜드 핑크 그대로. 신규 디자인 없음. |
 | 2026-06-05 | **토큰·비용 실측을 run 결과물에 종속 저장 (rev2 B-안전 방안)** — 라이브 표시는 *아예 포기*. `cost_tracker._runs[run_id]` 에 `prompt_tokens`/`completion_tokens` 필드, `record()` 시그니처에 토큰 keyword 인자(default 0). `llm_clients.py:338` 가 SDK 실측 토큰(`p_tok`/`c_tok`)을 함께 누적. `trace_logger.write_metadata(cost_summary=)` 인자 추가 → `metadata["cost"]` 에 `{newsroom: {is_actual_tokens: true, ...}, judge: {is_actual_tokens: false, note: "..."}, total: {...}}` breakdown 저장. judge 토큰은 `judge_panel._TOKEN_ESTIMATE` 호출당 2000/1000 고정 추정(실측 잡으려면 별도 3 함수 패치 필요 — 별건). `RunDetail.cost` 신규 필드로 API 노출, `routers/runs.py` 가 `metadata["cost"]` 끌어올림. **NowPlayingPanel UsageCard 제거**(4→3 카드). **SSE 보호 최우선** — `stream.py`/`useRunStream.ts`/`sse_broker.py` diff 0, `onCostUpdate` 리스너 + `totalTokens`/`totalCostUSD` state 필드는 회귀 위험 회피 위해 dead 데이터로 의도 유지. backend pytest 49 PASS, npm build PASS. commit ffe450a (8 files, +238/-31). | 진단 결과 라이브 UI 비용은 dead listener (`cost_update` 미발행) 라 항상 0이고, 종료 후엔 judge_panel 추정치만 표시되던 문제. 해결: 라이브 분기를 손대지 않고(SSE 회귀 표면 0) run 결과물에만 종속 저장 → 표시는 별도 히스토리 DB 작업이 가져감. **단가 placeholder(gpt-5 / claude-opus-4-7) 잔존** — 실시세 미확인, 본 작업에서 덮어쓰지 않음. |
 
@@ -191,9 +195,9 @@
 - **2026-06-05 · Gemini 빌링 prepay credits 소진 · 영향도 높음 · ✅ 해소** — 운영 + 로컬 모두 Trend Scout 17초 대기 후 `429 RESOURCE_EXHAUSTED: Your prepayment credits are depleted` 로 stage 1 fail. 사용자 AI Studio 충전 후 propagation 완료 → 운영 환경 `2026-06-05T00-50-24_c98b5ddc` 9 에이전트 완주(319초, weighted=67.2). 진단: trace `agents/01_trend_scout.json` 의 raw error 메시지가 결정타였음.
 - **2026-06-05 · 누적 사용량 토큰 0 표시 · 영향도 낮음 · 미해소(구조적)** — cost_tracker 에 token 필드 자체 부재. UI 표시는 항상 0. 비용 추적은 정상 동작하지만 토큰 카운트는 명시적으로 미구현. 마감 후 후보, 데모 비차단.
 - **2026-06-05 · 콘텐츠 출처 품질 (미래 날짜·비공신력 출처) · 영향도 중간 · 부분 해소** — Trend Scout/Fact-Checker 출처가 가끔 미래 날짜(target_date 캐리오버 오해)나 비공신력 사이트 인용. 운영 weighted_total 67.2 (improving). 추가 필터링(도메인 화이트리스트·날짜 sanity check) 후보. 마감 후 우선순위.
-- **2026-06-05 · 전 admin 기능 ephemeral · 영향도 중간 · 의도된 동작** — Persona Lab 프롬프트(`_defaults/`, `.versions/`), 런타임 API 키(메모리), 발행 토픽 레지스트리(`data/topic_registry.json`) 모두 Railway 재배포 시 초기화. UI 안내 배너 + RESULT.md 명시. v2 에서 Volume/DB 영속화 예정.
+- **2026-06-05 · 전 admin 기능 ephemeral · 영향도 중간 · ✅ 부분 해소(2026-06-05, commits 3ddc520·848202b)** — **결과 콘텐츠 영속화 완료**(outputs.db + Railway Volume + `/admin/runs`). 그러나 Persona Lab 프롬프트(`_defaults/`, `.versions/`), 런타임 API 키(메모리), 발행 토픽 레지스트리(`data/topic_registry.json`)는 **여전히 ephemeral** — 마감 데모 비차단 판단 + 안내 배너 유지. 완전 영속화는 v2.
 - **#W-sse-pipeline-complete-reconnect (2026-06-04) · 영향도 낮음 · 브라우저 실 발현 여부 미확인** — `useRunStream` 은 `pipeline_complete` 안에서 `es.close()` 호출하므로 안 깨지나, native EventSource 직접 사용 시나리오에서 재연결 루프 가능. 데모 비차단 가설 단계. 모니터링.
-- **2026-06-05 · API 경로 `final_output.html` 저장 누락 (의심) · 영향도 중간 · 미해소** — 특정 조건(상태=degraded 또는 `result.final_html` 부재)에서 `run_manager._run_pipeline:191-201` 의 저장이 스킵될 가능성 있음. 사용자 보고 기준. 재현 로그 확보 후 패치. 마감 후.
+- **2026-06-05 · API 경로 `final_output.html` 저장 누락 (의심) · 영향도 중간 · 부분 완화(2026-06-05, commit 3ddc520)** — 디스크 `final_output.html` 누락 자체는 미해결이나, **outputs.db 에도 wrapped final_html 적재**되어 사용자가 `/admin/runs` 미리보기/다운로드 경로로 결과를 항상 가져갈 수 있음. 디스크 파일 누락 근본 원인(상태=degraded 또는 `result.final_html` 부재) 진단은 마감 후.
 - **2026-06-05 · Fact-Checker 빈 응답(safety / grounding+json 충돌 의심) · 영향도 중간 · 미해소** — 운영에서 Fact-Checker 가 가끔 빈 응답. Gemini grounding + JSON mode 조합의 safety filter 또는 응답 길이 cutoff 의심. 별건 진단 필요. 마감 후.
 - **2026-06-05 · 고아 run 회수 메커니즘 없음 · 영향도 중간 · 미해소** — `RunManager._active[sid]` 의 task 가 SSE 연결 끊김에도 cancel 되지 않음(`run_manager.py:71, 92-94`, `stream.py:73-81`). 사용자 이탈 후 `PIPELINE_TIMEOUT_SEC=20*60`(20분) 까지 계속 회전하며 LLM 비용 누적. 회수 패치는 별건: SSE last-seen 추적 + N초 무구독 시 `task.cancel()` 추가. 마감 후 우선순위.
 - **2026-06-05 · Railway 재기동 시 in-flight run 소실 · 영향도 중간 · 의도된 동작 (인-프로세스 dict)** — `_active` 가 프로세스 메모리 dict 이므로 healthcheck 실패·재배포로 process kill 시 active run 전부 사라짐. 외부 큐(Redis/RQ/Celery) 도입은 v2 범위.
@@ -203,25 +207,43 @@
 - **2026-06-05 · cost_tracker `_runs` 메모리 누수 가능 · 영향도 낮음 · 미해소** — `reset_run(run_id)` 정의됐으나 호출처 0건 (grep). 장수명 프로세스에서 run 끝나도 `_runs` dict 에 누적. 마감 후 별건: `run_manager._execute` 의 finally 에 `tracker.reset_run(session_id)` 추가로 처리.
 - **2026-06-05 · Judge Panel 토큰 실측 미확보 · 영향도 낮음 · 의도된 상태** — newsroom 9 에이전트는 SDK usage 실측, judge_panel 3 함수는 `_TOKEN_ESTIMATE` 호출당 input=2000/output=1000 고정 추정 사용. `metadata.cost.judge.is_actual_tokens=false` + note 명시로 구분. Judge 실측 잡으려면 `_call_gemini_judge_default` / `openai_client.call_openai_judge` / `anthropic_client.call_anthropic_judge` 3 함수에 SDK usage 추출 + `tracker.record` 호출 추가 필요. 마감 후.
 - **2026-06-05 · UI 폴리싱 2차 잔여 3건 · 영향도 낮음 · ✅ 해소(2026-06-05, commit fa08969)** — (a) `PlaybackToggle` 컴포넌트 삭제 — no-op + "재생" 오독 소지 동시 제거. replay 실 동작은 별건 v2 큐. (b) ← 메인을 풀폭 슬림 top bar 좌상단으로 이동, 가운데 헤더는 좌측 단일 정렬로 정리. (c) `personas.yaml` 의 `gameifier.display_name` 1줄 변경 → "인터랙티브 빌더". internal key 불변.
+- **2026-06-05 · 메인 "전체 보기" dead link (`/admin/runs` 404) · 영향도 낮음 · ✅ 해소(2026-06-05, commit 848202b)** — `components/main/recent-runs.tsx:39-44` 가 `/admin/runs` 로 라우팅하나 페이지 미구현이라 not-found 렌더링. 출력 히스토리 페이지 신설로 해소.
+- **2026-06-05 · 메인 카드 ephemeral 휘발 · 영향도 중간 · ✅ 해소(2026-06-05, commit 848202b)** — 메인 카드가 디스크 `runs/` 폴더 스캔(`fetchRecentRuns`) 의존이라 Railway 재배포 시 전부 사라짐. outputs.db 소스(`fetchOutputs(6)`) 전환으로 영속.
+- **2026-06-05 · `.gitignore` 의 bare `runs/` 패턴 footgun · 영향도 낮음 · ✅ 해소(2026-06-05, commit 88d14bb)** — `runs/` 패턴이 임의 깊이 디렉터리(`frontend/app/admin/runs/` 등) 모두 매칭. 루트 anchor `/runs/` 로 좁힘. 이미 추적된 파일에는 영향 없으나, 미래 신규 파일 추적 누락 가능성 사전 차단.
+- **2026-06-05 · 메인 카드 MOCK 더미 5건 깜빡임 · 영향도 낮음 · ✅ 해소(2026-06-05)** — outputs.db 영속화 후 빈 DB/로딩 중 분기에 `MOCK_RECENT_RUNS` 가 노출돼 새로고침마다 가짜 카드가 깜빡인 후 실데이터로 전환. 발표 중 가짜 데이터 오인 리스크. MOCK fallback 제거 + 4분기 렌더 + `placeholderData=(prev)=>prev` 깜빡임 방지로 해소.
+- **2026-06-05 · Railway Volume 영속 검증 미수행 · 영향도 높음 · 미해소(Kane 콘솔 수동)** — 코드만으로 영속 안 됨. 명세 §7 5단계 (Volumes 추가 mount=`/data` → env `OUTPUTS_DB_PATH=/data/outputs.db` → run 적재 → redeploy → 잔존 확인) 마감 전 1회 통과 필수. 미수행 시 Vercel 측은 잘 동작하나 Railway 컨테이너 재기동에 `/admin/runs` 가 빈 상태로 돌아감.
 
 ---
 
 ## 🎯 다음 추천 액션 (마감 **2026-06-08** 까지)
 
-**우선순위 1 — 발표/결선 PT 자료 (별도 채팅 권장).** 본 채팅 context 가 무거우므로 새 세션에서 다음 자료를 가져가면 됩니다:
+**우선순위 1 — Railway Volume 영속 검증 (Kane 콘솔, 코드 외 단계).** 명세 `docs/patches/2026-06-05_output-history-persistence.md` §7 5단계:
+
+```
+1. Railway 백엔드 서비스 → Volumes → 새 Volume 추가, Mount Path = /data
+2. Variables 에 OUTPUTS_DB_PATH = /data/outputs.db 추가
+3. 배포 후 run 1개 정상 종료 → /admin/runs 리스트에 그 run 등장 확인
+4. Railway redeploy 실행
+5. /admin/runs 리스트에 그 run 그대로면 영속 PASS
+```
+- 2번 누락 또는 Volume 미마운트 시 5번에서 소실 → 영속 실패.
+- 마감 전 1회 통과 필수(데모 1순위 = 휘발 안 됨 검증).
+
+**우선순위 2 — 발표/결선 PT 자료 (별도 채팅 권장).** 본 채팅 context 가 무거우므로 새 세션에서 다음 자료를 가져가면 됩니다:
 
 1. 운영 라이브 URL (Vercel) + 운영 run (`2026-06-05T00-50-24_c98b5ddc`, weighted=67.2)
 2. 메타 산출물 폴더 (`runs/2026-05-25T06-16-20_1bc88d21/` 9 에이전트 첫 완주 trace + final_output.html)
-3. 아키텍처 다이어그램 초안 (3 Newsroom + Judge Panel + admin 콘솔 + 에이전트 상세 모달)
+3. 아키텍처 다이어그램 초안 (3 Newsroom + Judge Panel + admin 콘솔 + 에이전트 상세 모달 + outputs.db)
 4. 본 PROGRESS.md 의 의사결정 로그 30+ 건 — 디자인 결정의 "왜" 모두 포함
 5. B3-S3-E RESULT.md (`docs/patches/2026-06-04_b3-s3-e_RESULT.md`)
-6. **신규**: B3-S3-F 에이전트 상세 모달 + 발화 고도화 + Judge 앵커 (commits `fa7f1e1`, `402dfaf`)
+6. B3-S3-F 에이전트 상세 모달 + 발화 고도화 + Judge 앵커 (commits `fa7f1e1`, `402dfaf`)
+7. **신규**: 출력 히스토리 영속화 (commits `3ddc520`/`848202b` + 명세 `2026-06-05_output-history-persistence.md`) — "9에이전트+3판정단 1회 = 토큰 N / 약 $X" 정량 증거
 
-**우선순위 2 — 운영 종단 회귀.**
-- 운영 환경에 신규 commit (`9ae0424` Judge 역할 / `fa7f1e1` 발화·콘텐츠 품질 / `402dfaf` 에이전트 모달 / `3c1e5d0` global-error / `ffe450a` 토큰·비용 실측 / `fa08969` run UI 폴리싱 2차) 반영 후 1 run 회귀
-- 종단 검증 포인트: 발화 다양성 / 모달 동작 / Judge 5축 앵커 효과 / `runs/<sid>/metadata.json` 의 `cost` 섹션 + `GET /api/runs/<sid>` 의 `cost` 필드 노출 / 좌상단 ← 메인 + Game-ifier→"인터랙티브 빌더" 라벨 정상 표시
+**우선순위 3 — 운영 종단 회귀.**
+- 운영 환경에 신규 commit 모두 반영 후 1 run 회귀 (`9ae0424`·`fa7f1e1`·`402dfaf`·`3c1e5d0`·`ffe450a`·`fa08969`·`3ddc520`·`848202b`·`88d14bb`)
+- 종단 검증 포인트: 발화 다양성 / 모달 동작 / Judge 5축 앵커 효과 / `runs/<sid>/metadata.json` 의 `cost` 섹션 + `GET /api/runs/<sid>` 의 `cost` 필드 + `/admin/runs` 적재 / 좌상단 ← 메인 + Game-ifier→"인터랙티브 빌더" 라벨 정상 표시
 
-**우선순위 3 — 여유 시.**
+**우선순위 4 — 여유 시.**
 - Format Architect 인터랙티브 요소 지시 강화 (C 타입 채택률 + 본문 부합도)
 
 **마감 후 (별건 큐).**
