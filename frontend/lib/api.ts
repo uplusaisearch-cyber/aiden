@@ -94,6 +94,12 @@ export interface RunDetail {
   judge_panel: JudgePanelResult | null;
   final_output_html_url: string | null;
   metadata: Record<string, unknown>;
+  // B4-S2 C2/C4: planning_selection user-facing 4필드.
+  // 과거 run / selector 폴백 시 null.
+  angle?: string | null;
+  angle_label?: string | null;
+  audience_segment?: string | null;
+  segment_label?: string | null;
 }
 
 // ---------------------------------------------------------------

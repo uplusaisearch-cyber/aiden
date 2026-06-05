@@ -28,6 +28,14 @@ import {
 
 export type RunStatus = "connecting" | "streaming" | "completed" | "error";
 
+/** B4-S2 C4: round-robin 선정 angle/SEG 메타. 4 필드 모두 truthy 일 때만 활성. */
+export interface PlanningMeta {
+  angle: string;
+  angle_label: string;
+  audience_segment: string;
+  segment_label: string;
+}
+
 export interface RunState {
   status: RunStatus;
   messages: ChatMessage[];
@@ -41,6 +49,10 @@ export interface RunState {
   error: string | null;
   /** 과거 run(완료/실패) 여부. */
   isHistorical: boolean;
+  /** 토픽 라벨 룩업용. pipeline_start payload + RunDetail.category 둘 다에서 채워짐. */
+  category: string | null;
+  /** 선정 조합. 4 필드 중 하나라도 비면 null (과거 run / selector 폴백). */
+  planning: PlanningMeta | null;
 }
 
 const INITIAL: RunState = {
@@ -55,7 +67,27 @@ const INITIAL: RunState = {
   totalCostUSD: 0,
   error: null,
   isHistorical: false,
+  category: null,
+  planning: null,
 };
+
+/** 4 필드 모두 truthy 일 때만 PlanningMeta, 아니면 null. pure — 외부 mutate 없음. */
+function extractPlanning(
+  data: Record<string, unknown> | null | undefined,
+): PlanningMeta | null {
+  if (!data) return null;
+  const angle = typeof data.angle === "string" ? data.angle : "";
+  const angle_label =
+    typeof data.angle_label === "string" ? data.angle_label : "";
+  const audience_segment =
+    typeof data.audience_segment === "string" ? data.audience_segment : "";
+  const segment_label =
+    typeof data.segment_label === "string" ? data.segment_label : "";
+  if (!angle || !angle_label || !audience_segment || !segment_label) {
+    return null;
+  }
+  return { angle, angle_label, audience_segment, segment_label };
+}
 
 const TERMINAL_PREFIXES = ["completed", "partial", "failed"];
 
@@ -111,11 +143,18 @@ export function useRunStream(runId: string): RunState {
 
     const subscribeLive = (initialStartedAt: number | null) => {
       const handlers: RunStreamHandlers = {
-        onPipelineStart: () => {
+        onPipelineStart: (data) => {
+          // B4-S2 C4: pipeline_start payload 에서 category + planning 4필드 흡수.
+          // setState updater 내부에서 pure 하게 — 외부 객체 mutate 없음.
+          const nextPlanning = extractPlanning(data);
+          const nextCategory =
+            typeof data?.category === "string" ? data.category : null;
           setState((s) => ({
             ...s,
             status: "streaming",
             startedAt: s.startedAt ?? Date.now(),
+            category: nextCategory ?? s.category,
+            planning: nextPlanning ?? s.planning,
           }));
         },
         onChat: (msg: ChatMessage) => {
@@ -186,6 +225,15 @@ export function useRunStream(runId: string): RunState {
 
         const terminal = isTerminalStatus(detail.status);
 
+        // B4-S2 C4: RunDetail 의 4필드를 PlanningMeta 로 변환. 새로고침/재진입 시
+        // SSE pipeline_start 를 못 받아도 카드 표시 가능.
+        const detailPlanning = extractPlanning({
+          angle: detail.angle,
+          angle_label: detail.angle_label,
+          audience_segment: detail.audience_segment,
+          segment_label: detail.segment_label,
+        });
+
         setState((s) => ({
           ...s,
           messages: detail.messages,
@@ -202,6 +250,8 @@ export function useRunStream(runId: string): RunState {
           totalCostUSD: typeof judgeCost === "number" ? judgeCost : s.totalCostUSD,
           status: terminal ? "completed" : "streaming",
           isHistorical: terminal,
+          category: detail.category ?? s.category,
+          planning: detailPlanning ?? s.planning,
         }));
 
         if (!terminal) {

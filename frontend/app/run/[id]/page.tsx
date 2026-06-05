@@ -13,6 +13,7 @@ import { StagePanel } from "@/components/run/StagePanel";
 import { ChatStream } from "@/components/run/ChatStream";
 import { NowPlayingPanel } from "@/components/run/NowPlayingPanel";
 import { BottomTabs } from "@/components/run/BottomTabs";
+import { PlanningHeaderCard } from "@/components/run/PlanningHeaderCard";
 
 export default function RunPage() {
   const params = useParams<{ id: string }>();
@@ -123,6 +124,11 @@ export default function RunPage() {
           ← 메인
         </Link>
       </div>
+
+      {/* B4-S2 C4: 선정 조합 헤더 카드 — planning 메타 있을 때만 렌더 (폴백/과거 run 비렌더). */}
+      {run.planning && (
+        <PlanningHeaderCard category={run.category} planning={run.planning} />
+      )}
 
       {/* 상단 3-컬럼 (B3-S3-C 트레이스 뷰어 — 회귀 0 유지) */}
       <div className="grid h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[280px_1fr_320px]">
