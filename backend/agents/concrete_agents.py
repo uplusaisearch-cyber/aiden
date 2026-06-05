@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Callable
 
 from backend.core.base_agent import PromptLoader
@@ -19,6 +20,7 @@ def make_agent_callable(
     llm_client: GeminiClient,
     use_grounding: bool = False,
     prompt_loader: PromptLoader | None = None,
+    dynamic_vars_fn: Callable[[], dict[str, str]] | None = None,
 ) -> Callable[[dict], dict]:
     """prompt 파일과 LLM 클라이언트로부터 에이전트 callable 생성.
 
@@ -27,14 +29,39 @@ def make_agent_callable(
         llm_client: GeminiClient 인스턴스.
         use_grounding: Google Search Grounding 사용 여부.
         prompt_loader: 재사용 시 인스턴스 주입 (None 이면 새로 생성).
+        dynamic_vars_fn: 호출 시점마다 system prompt 의 ``{{KEY}}`` 를 동적으로
+            치환할 변수를 반환하는 함수. B3-S3-E 의 ``PUBLISHED_TOPICS`` 주입용.
+            None 이면 정적 치환 (기존 동작).
 
     Returns:
         ``agent_callable(input_data: dict) -> dict``.
     """
     loader = prompt_loader or PromptLoader()
-    system_prompt = loader.load(prompt_filename)
+    # 정적 모드: 파일을 한 번만 읽어 캐시.
+    if dynamic_vars_fn is None:
+        system_prompt = loader.load(prompt_filename)
+
+        def _call(input_data: dict) -> dict:
+            return llm_client.call(
+                system_prompt=system_prompt,
+                user_input=input_data,
+                use_grounding=use_grounding,
+            )
+
+        _call.__name__ = f"agent_{prompt_filename.replace('.md', '')}"
+        return _call
+
+    # 동적 모드: 매 호출마다 파일을 다시 읽고 dynamic_vars 도 substitute.
+    prompt_path: Path = loader.prompts_dir / prompt_filename
 
     def _call(input_data: dict) -> dict:
+        raw = prompt_path.read_text(encoding="utf-8")
+        try:
+            extra = dynamic_vars_fn() or {}
+        except Exception as exc:  # noqa: BLE001 — 주입 실패가 파이프라인을 깨면 안 됨
+            logger.warning("dynamic_vars_fn 실패 — placeholder 보존: %s", exc)
+            extra = {}
+        system_prompt = loader.substitute(raw, extra_vars=extra)
         return llm_client.call(
             system_prompt=system_prompt,
             user_input=input_data,
@@ -45,12 +72,28 @@ def make_agent_callable(
     return _call
 
 
+# ---------------------------------------------------------------------
+# B3-S3-E: Topic Scout PUBLISHED_TOPICS 동적 주입 헬퍼
+# ---------------------------------------------------------------------
+def _scout_dynamic_vars() -> dict[str, str]:
+    """Topic Scout 호출 시점에 발행 토픽 레지스트리에서 PUBLISHED_TOPICS 블록을 만든다."""
+    # 늦은 import — 순환 의존 / 테스트에서 registry 미초기화 환경 회피.
+    from backend.api.services.topic_registry import render_published_topics_block
+
+    return {"PUBLISHED_TOPICS": render_published_topics_block()}
+
+
 def build_topic_newsroom_agents(llm_client: GeminiClient) -> dict[str, Callable[[dict], dict]]:
     """Topic Newsroom 용 3개 에이전트 callable 생성."""
     loader = PromptLoader()
     return {
+        # scout 는 매 호출 시점에 PUBLISHED_TOPICS 를 새로 주입한다 (B3-S3-E §A3).
         "scout": make_agent_callable(
-            "01_trend_scout.md", llm_client, use_grounding=True, prompt_loader=loader
+            "01_trend_scout.md",
+            llm_client,
+            use_grounding=True,
+            prompt_loader=loader,
+            dynamic_vars_fn=_scout_dynamic_vars,
         ),
         "analyst": make_agent_callable(
             "02_audience_analyst.md", llm_client, use_grounding=False, prompt_loader=loader
@@ -99,7 +142,11 @@ def build_all_agents(llm_client: GeminiClient) -> dict[str, Callable[[dict], dic
 
     topic = {
         "scout": make_agent_callable(
-            "01_trend_scout.md", llm_client, use_grounding=True, prompt_loader=loader
+            "01_trend_scout.md",
+            llm_client,
+            use_grounding=True,
+            prompt_loader=loader,
+            dynamic_vars_fn=_scout_dynamic_vars,
         ),
         "analyst": make_agent_callable(
             "02_audience_analyst.md", llm_client, use_grounding=False, prompt_loader=loader
