@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-05 **Railway Volume 영속 검증 PASS** (redeploy 후에도 `/admin/runs` 레코드 잔존) |
-| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** (코드+볼륨 검증) + 메인 카드 MOCK 제거 **1/1** |
-| **현재 Phase** | Phase 1~5 + 영속화 검증까지 완료. **마감 2026-06-08** 잔여: (a) 발표/결선 PT 자료(별도 채팅), (b) 운영 종단 회귀(여유 시), (c) 여유 시 Format Architect 인터랙티브 강화 |
+| **마지막 업데이트** | 2026-06-05 **B4-S1 모델 라우팅 완료** (yaml dead config 해소 + 에이전트별 모델 + UI 라벨) |
+| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** + 메인 카드 MOCK 제거 **1/1** + 모델 라우팅 **1/1** (B4-S1) |
+| **현재 Phase** | Phase 1~5 + 영속화 검증 + 모델 라우팅까지 완료. **마감 2026-06-08** 잔여: (a) 발표/결선 PT 자료(별도 채팅), (b) 운영 종단 회귀(여유 시), (c) 여유 시 Format Architect 인터랙티브 강화 |
 
 ---
 
@@ -122,6 +122,7 @@
 - [x] **(폴리싱 2차)** UI 3건 — PlaybackToggle 컴포넌트 삭제 (no-op 토글 제거) / ← 메인을 헤더 우측 → 풀폭 슬림 top bar 좌상단 (가운데 헤더 좌측 단일 정렬로 정리) / `personas.yaml` `stages.gameifier.display_name` "Game-ifier" → "인터랙티브 빌더" (internal key 불변). 에러/폴백 ← 메인 4곳(`run/[id]:64,99` / `error.tsx:46` / `not-found.tsx:20`) 보존. npm run build PASS _(2026-06-05, commit fa08969)_
 - [x] **출력 히스토리 영속화 (outputs.db + /admin/runs)** — SQLite 단일 파일 스토어(`backend/storage/outputs_store.py`, env `OUTPUTS_DB_PATH`, UPSERT, 모든 예외 격리). `run_manager` `write_metadata` 직후 적재 — **정상 종료 AND `final_html` 있을 때만**(실패/timeout 등 미적재). topic=planner.final_topic.title, weighted_score/mean_scores 5축, total_tokens/total_cost_usd, `cost_is_estimated=judge.is_actual_tokens=False` 매핑. `GET /api/outputs` / `/{id}` / `/{id}/download` (RFC 6266 한글 파일명). 프론트: `/admin/runs` 페이지(iframe srcDoc 미리보기 + .html 다운로드 + `est` 배지), AdminSidebar `🗂️ 출력 히스토리` 추가, 메인 카드 소스 `fetchRecentRuns(5)` → `fetchOutputs(6)`, 클릭 `/admin/runs?preview=<id>`(Suspense 경계). `runs/` → `/runs/` gitignore 루트 anchor 패치(`frontend/app/admin/runs/` 보호). **라이브 SSE 경로 무변경**. backend pytest 56/56 PASS, npm run build PASS. 명세 `docs/patches/2026-06-05_output-history-persistence.md`, commits `3ddc520`(backend) + `848202b`(frontend) + `88d14bb`(gitignore) + `02785b2`(명세). **Railway Volume 마운트 + redeploy 영속 검증 PASS** (Volume `/data` mount + `OUTPUTS_DB_PATH=/data/outputs.db` env + redeploy 후 레코드 잔존 확인) _(2026-06-05)_
 - [x] **메인 카드 MOCK fallback 제거 + 상태 분기** — `MOCK_RECENT_RUNS` (더미 5건) 가 로딩 중/빈 DB 분기에 노출돼 새로고침마다 가짜 데이터가 깜빡이던 문제 해소(발표 시 가짜 데이터 오인 리스크). `app/page.tsx` MOCK import 제거 + fallback 분기 제거, `useQuery` 에 `placeholderData: (prev) => prev` 추가(재요청 중 이전 데이터 유지). `components/main/recent-runs.tsx` 4분기 렌더: **데이터 있음 우선** → 카드 / **isLoading + 빈** → 6칸 스켈레톤(animate-pulse, 기존 토큰) / **isError** → 한 줄 안내 / **빈 배열** → "아직 생성된 콘텐츠가 없습니다." `lib/mock-data.ts` 의 `MOCK_RECENT_RUNS` 상수 + unused `MockRecentRun` import 제거(`MOCK_JUDGE_DATA`/`makeMockSessionId` 유지 — 범위 밖). npm run build PASS(11/11 prerender, `/` 11.3 kB) _(2026-06-05)_
+- [x] **B4-S1 모델 라우팅 (dead config 해소 + UI 모델 라벨)** — 운영 라이브(`run_manager._run_pipeline`)가 단일 `GeminiClient()` 를 9 에이전트에 공유 → `config/agents.yaml` 의 `agents.<key>.model` 매핑이 dead config 였던 문제 해소. `concrete_agents._build_client_for_alias` 신설로 에이전트별 client + 지정 모델 chain 부착 (flash-lite 폴백 자동, env `AIDEN_GEMINI_MODELS` override 호환). yaml `models.gemini_pro_hi: gemini-3.1-pro-preview` 별칭 신규 + planner/writer/editor → hi, architect/builder → `gemini-2.5-pro`, scout/analyst/factcheck/devils → `gemini-2.5-flash` 유지. 신규 라우터 `GET /api/agents/models` (`newsroom` + `judges` 매핑 노출). 프론트 `fetchAgentModels()` + `shortModelLabel()` (`gemini-` prefix 제거) + ChatStream MessageBubble 헤더 옆 monochip (디자인 토큰 그대로, `flex-wrap` 모바일 380px 줄바꿈, Judge 버블 미표시). 선결검증 §0 PASS: `gemini-3.1-pro-preview` 3666ms·"PONG"·11/2 tokens. backend 7건 신규 테스트 + 63/63 PASS, npm run build 11/11 prerender (`/run/[id]` 142 kB). 4-commit 분할 (`e159499`/`e89163b`/`17adfa9`/`58557e2`). 명세 `docs/patches/B4-S1-model-routing.md`. _(2026-06-05)_
 - [ ] (마감 점검) 배포 안정성 — 운영 환경에 fa7f1e1·402dfaf·3c1e5d0·ffe450a·fa08969·3ddc520·848202b·88d14bb 반영 후 1 run 회귀 (발화 다양성·모달·Judge 앵커·`metadata.cost` 섹션 + `RunDetail.cost` + `/admin/runs` 적재 확인 종단 검증)
 - [ ] (여유 시) Format Architect 인터랙티브 요소 지시 강화 — C 타입 채택률·본문 부합도 개선
 - [ ] 발표/결선 PT 자료 — 별도 채팅에서 진행
@@ -179,6 +180,10 @@
 | 2026-06-05 | **출력 히스토리 영속화 (SQLite + Railway Volume)** — 종료된 run 의 **결과 레코드만** 별도 영속 저장 (트레이스/대화 제외, v2 큐). `backend/storage/outputs_store.py` SQLite 단일 파일 스토어 — env `OUTPUTS_DB_PATH` 우선(Railway Volume `/data/outputs.db`), 기본 `backend/.cache/outputs.db`. 스키마 1개 테이블(`outputs` PK=`run_id`, INSERT OR REPLACE UPSERT, idx created_at DESC). 적재 훅 = `run_manager._run_pipeline` 의 `write_metadata` 직후, 조건 `status=="completed" AND wrapped_final_html`. judge 비용 추정(`is_actual_tokens=False`) → `cost_is_estimated=True` 매핑(`est` 배지). 라우터 3개(`/api/outputs`, `/{id}`, `/{id}/download`). 프론트 `/admin/runs` 페이지: 토픽·카테고리·시간·점수(색상)·토큰(k)·비용(`$` + 추정 배지) + 행별 [미리보기]/[다운로드]. 미리보기 = `iframe srcDoc` (sandbox `allow-scripts`만, srcDoc 별도 origin). `?preview=<id>` URL 자동 모달 open(Suspense 경계로 useSearchParams 래핑). 메인 카드 = `fetchOutputs(6)`, cap 6, 클릭 `/admin/runs?preview=<id>` (트레이스 휘발 graceful fallback), 빈 DB 일 때만 MOCK fallback. AdminSidebar 5→6 항목. `runs/` → `/runs/` gitignore 루트 anchor 패치(임의 깊이 `frontend/app/admin/runs/` 무시되던 footgun 해소). 4 커밋 분할(`3ddc520` backend +387/-4, `848202b` frontend +366/-22, `88d14bb` gitignore +2/-2, `02785b2` 명세 +174). backend pytest 56/56 PASS, npm build PASS(11/11 prerender, `/admin/runs` 5.85 kB). **라이브 SSE 경로(`stream.py`/`useRunStream.ts`/`/run/[id]/page.tsx`) diff 0** — 트레이스 뷰어·SSE 회귀 표면 0. 명세 `docs/patches/2026-06-05_output-history-persistence.md`. | "전체 보기" dead link 해소(`/admin/runs` 페이지 실존) + Railway 재배포 휘발 문제의 결과 파트 해소. **트레이스/대화 영속은 v2 보류**(SQLite TEXT/JSON blob 크기·관리비용 vs 결과만 영속의 단순성 트레이드오프 — 결과만 채택). Volume 마운트 + redeploy dry-run 영속 검증은 Kane 콘솔 수동 단계(명세 §7) — 마감 전 1회 통과 필수. |
 | 2026-06-05 | **폴리싱 2차 run UI 3건 완료** — (1) `PlaybackToggle` 컴포넌트 삭제 + `page.tsx` import/사용처 제거 (no-op + "재생" 단어 오독 소지 해결, replay 실 동작은 별건 v2). (2) 정상 라우트 ← 메인을 가운데 헤더 우측 → 풀폭 슬림 top bar 좌상단으로 이동, 가운데 헤더는 `justify-between` → 좌측 단일 정렬로 정리. 에러/폴백 ← 메인 4곳(`run/[id]:64,99` / `error.tsx:46` / `not-found.tsx:20`) 무변경. (3) `personas.yaml` `stages.gameifier.display_name` "Game-ifier" → "인터랙티브 빌더" 1줄. internal key `gameifier` 불변(5개 변경점 회피). 백엔드 docstring/log 의 `Game-ifier` 잔재는 비-display 라 유지. 명세 `docs/patches/2026-06-05_run-ui-cleanup.md`. `npm run build` PASS. commit fa08969(코드 4 files +13/-88) + 1c08389(명세 추가). | 라이브 UI/SSE/그리드/다크모드/회귀 0. 디자인 토큰·shadcn·브랜드 핑크 그대로. 신규 디자인 없음. |
 | 2026-06-05 | **토큰·비용 실측을 run 결과물에 종속 저장 (rev2 B-안전 방안)** — 라이브 표시는 *아예 포기*. `cost_tracker._runs[run_id]` 에 `prompt_tokens`/`completion_tokens` 필드, `record()` 시그니처에 토큰 keyword 인자(default 0). `llm_clients.py:338` 가 SDK 실측 토큰(`p_tok`/`c_tok`)을 함께 누적. `trace_logger.write_metadata(cost_summary=)` 인자 추가 → `metadata["cost"]` 에 `{newsroom: {is_actual_tokens: true, ...}, judge: {is_actual_tokens: false, note: "..."}, total: {...}}` breakdown 저장. judge 토큰은 `judge_panel._TOKEN_ESTIMATE` 호출당 2000/1000 고정 추정(실측 잡으려면 별도 3 함수 패치 필요 — 별건). `RunDetail.cost` 신규 필드로 API 노출, `routers/runs.py` 가 `metadata["cost"]` 끌어올림. **NowPlayingPanel UsageCard 제거**(4→3 카드). **SSE 보호 최우선** — `stream.py`/`useRunStream.ts`/`sse_broker.py` diff 0, `onCostUpdate` 리스너 + `totalTokens`/`totalCostUSD` state 필드는 회귀 위험 회피 위해 dead 데이터로 의도 유지. backend pytest 49 PASS, npm build PASS. commit ffe450a (8 files, +238/-31). | 진단 결과 라이브 UI 비용은 dead listener (`cost_update` 미발행) 라 항상 0이고, 종료 후엔 judge_panel 추정치만 표시되던 문제. 해결: 라이브 분기를 손대지 않고(SSE 회귀 표면 0) run 결과물에만 종속 저장 → 표시는 별도 히스토리 DB 작업이 가져감. **단가 placeholder(gpt-5 / claude-opus-4-7) 잔존** — 실시세 미확인, 본 작업에서 덮어쓰지 않음. |
+| 2026-06-05 | **B4-S1 모델 라우팅 — A안 채택 (gemini-3.1-pro-preview 직접 명시)** — 선결검증 §0 단발 핑 5종 결과: `gemini-3.1-pro` (GA 이름) 404 NOT_FOUND·`gemini-3.1-pro-preview` OK(3666ms)·`gemini-2.5-pro` OK(3262ms)·`gemini-3.5-flash` 503·`gemini-flash-latest`(→3.5-flash 라우팅) 9.8초·`gemini-3-flash-preview` 15.2초. **Flash 등급은 변경 금지** 결정 (3.x flash 후보 전부 503 또는 9~15초 지연, 현행 2.5-flash 유지가 안전+빠름). **Pro 등급 A안**(preview 직접 명시) vs D안(`gemini-pro-latest` 별칭 위임) 비교 후 A안 채택 — 모델 ID 결정성·재현성 우위, Google 라우팅 변경 영향 0. 단점은 preview 라벨이 PT 에서 약점 + GA 출시 시 yaml 1줄 갱신 필요(별칭 출처라 1줄 끝). | A안의 단점은 의사결정 로그 + yaml 별칭으로 통제 가능. D안은 운영 중 모델이 조용히 바뀔 수 있어 발표·재현성 측면에서 부적합. flash 후보 3.x 전체가 마감 직전 운영 안정성 의문 — 변경 금지 결정의 핵심 근거. |
+| 2026-06-05 | **B4-S1 4-commit 분할 (명세 / 배선 / yaml / UI)** — 명세에서 `자동 git add/commit 금지` 명시 + 사용자 명시 승인 후에만 진행 패턴. 명세 §커밋의 3-commit 패턴에 명세 파일 자체를 첫 chore(docs) commit 으로 분리해 4-commit. ① `e159499` docs(patches) — 명세 ② `e89163b` fix(routing) — `concrete_agents.py`/`run_manager.py` ③ `17adfa9` feat(yaml) — `config/agents.yaml` ④ `58557e2` feat(UI) — 라우터+테스트+프론트 6 files. backend pytest 63 PASS / npm build 11/11. | 명세 파일을 첫 commit 으로 분리 = git log 가독성↑·롤백 단위 명확화. 사용자 메모리의 "Spec-driven: each step has a markdown spec under `docs/patches/`" 패턴 일관성. |
+| 2026-06-05 | **B4-S1 폴백 체인 정책 — flash-lite 일괄 부착** — `_build_client_for_alias` 가 모든 에이전트 client 에 `[지정모델, gemini-2.5-flash-lite]` chain 자동 부착(주모델==flash-lite 면 단일). pro_hi/pro 에이전트도 503/429 시 flash-lite 로 강등 가능(품질 격차 크지만 503 회복이 셀링포인트). env `AIDEN_GEMINI_MODELS` 설정 시 모든 에이전트가 그 chain 으로 일괄 강등 (디버깅·운영 비상 강등). | 회귀 §"flash-lite 폴백 체인 유지" 충족. yaml 별 폴백 명시는 마감 임박이라 단순 룰 1개로 통일. Pro 강등 시 채팅 chip 라벨은 변경 없음(클라이언트 표시는 primary 별칭 기준) — 라벨과 실제 사용 모델 불일치 가능성은 명세 §회귀에 무기재. 별건 마감 후 검토. |
+| 2026-06-05 | **API 키 노출 → 회전 완료** — 사용자가 메시지/IDE에서 `GEMINI_API_KEY` 평문을 두 차례 노출. 두 번째 노출 직후 권고 → 사용자 키 회전 완료. 메시지·코드 로그에서 키 값 인용·재출력 금지를 자체 룰로 유지. `.env` 자체는 .gitignore 처리됨(이미 commit X). | 노출된 키는 회전 전까지 유효 → 빌링 사고 리스크. 미래 재발 방지는 (a) `.env` 라인 메시지에 직접 포함 금지, (b) IDE selection 인용 시 systemreminder 가 평문 노출하므로 응답에서 재인용 금지로 1차 차단. |
 
 ---
 
@@ -213,6 +218,10 @@
 - **2026-06-05 · `.gitignore` 의 bare `runs/` 패턴 footgun · 영향도 낮음 · ✅ 해소(2026-06-05, commit 88d14bb)** — `runs/` 패턴이 임의 깊이 디렉터리(`frontend/app/admin/runs/` 등) 모두 매칭. 루트 anchor `/runs/` 로 좁힘. 이미 추적된 파일에는 영향 없으나, 미래 신규 파일 추적 누락 가능성 사전 차단.
 - **2026-06-05 · 메인 카드 MOCK 더미 5건 깜빡임 · 영향도 낮음 · ✅ 해소(2026-06-05)** — outputs.db 영속화 후 빈 DB/로딩 중 분기에 `MOCK_RECENT_RUNS` 가 노출돼 새로고침마다 가짜 카드가 깜빡인 후 실데이터로 전환. 발표 중 가짜 데이터 오인 리스크. MOCK fallback 제거 + 4분기 렌더 + `placeholderData=(prev)=>prev` 깜빡임 방지로 해소.
 - **2026-06-05 · Railway Volume 영속 검증 · 영향도 높음 · ✅ 해소(2026-06-05)** — 명세 §7 5단계 PASS. Volume mount=`/data` + env `OUTPUTS_DB_PATH=/data/outputs.db` 설정 후 run 적재 → redeploy → `/admin/runs` 레코드 잔존 확인. 영속화 코드 + 인프라 양쪽 종단 동작 검증 완료.
+- **2026-06-05 · 운영 라이브 yaml `agents.*.model` dead config · 영향도 중간 · ✅ 해소(2026-06-05, B4-S1)** — 운영 라이브가 단일 `GeminiClient()` 를 9 에이전트에 공유해 yaml agent별 모델 매핑이 사용 안 됨. B4-S1 으로 `_build_client_for_alias` per agent 도입 + 라우터/프론트 라벨까지 종단 노출.
+- **2026-06-05 · `gemini-3.1-pro-preview` 단가 두 placeholder 테이블 미등록 · 영향도 낮음 · 미해소** — `llm_clients.py:94-99` `_PRICE_TABLE` + `judge_panel.py:35-39` `_JUDGE_PRICE_TABLE` 양쪽에 `gemini-3.1-pro-preview` 단가 부재 → `estimate_cost` 0 USD 반환. 비용 통계 (`metadata.cost.newsroom`) 의 USD 합산만 누락(토큰 카운트는 정상). 운영 비차단 — 별건 마감 후 단가 placeholder 교정 작업 시 같이 처리(두 출처 동시 갱신).
+- **2026-06-05 · Pro 모델 폴백 시 flash-lite 강등 → 라벨/실모델 불일치 가능 · 영향도 낮음 · 미해소(허용)** — `_build_client_for_alias` 가 모든 에이전트에 `[지정모델, gemini-2.5-flash-lite]` chain 부착하므로 503/429 시 pro_hi → flash-lite 강등 가능. 프론트 chip 라벨은 primary 별칭 기준이라 실제 사용 모델과 표시 모델 불일치 발생 가능. 마감 직전 단순화 우선 — 본 작업 범위 밖. 별건: `last_used_model` 을 SSE 이벤트 또는 ChatMessage 메타로 노출하면 해소.
+- **2026-06-05 · `GEMINI_API_KEY` 평문 두 차례 노출 → 회전 완료 · 영향도 높음 · ✅ 해소(2026-06-05)** — 사용자가 메시지·IDE selection 으로 `AIzaSy...` 키 두 차례 노출. 사용자가 AI Studio 콘솔에서 키 회전 완료. 응답에서 키 값 인용·재출력 금지 자체 룰 유지. `.env` 는 .gitignore 처리됨.
 
 ---
 
@@ -229,14 +238,14 @@
 7. **신규**: 출력 히스토리 영속화 — 코드(commits `3ddc520`/`848202b` + 명세) + Railway Volume 영속 검증 PASS — "9에이전트+3판정단 1회 = 토큰 N / 약 $X" 정량 증거 + "재배포에도 결과 보존" 신뢰성 셀링포인트
 
 **우선순위 2 — 운영 종단 회귀 (여유 시).**
-- 운영 환경에 신규 commit 모두 반영 후 1 run 회귀 (`9ae0424`·`fa7f1e1`·`402dfaf`·`3c1e5d0`·`ffe450a`·`fa08969`·`3ddc520`·`848202b`·`88d14bb`·`860c1d0`)
-- 종단 검증 포인트: 발화 다양성 / 모달 동작 / Judge 5축 앵커 효과 / `runs/<sid>/metadata.json` 의 `cost` 섹션 + `GET /api/runs/<sid>` 의 `cost` 필드 + `/admin/runs` 적재 / 좌상단 ← 메인 + Game-ifier→"인터랙티브 빌더" 라벨 / 새로고침 시 메인 카드 깜빡임 0
+- 운영 환경에 신규 commit 모두 반영 후 1 run 회귀 (`9ae0424`·`fa7f1e1`·`402dfaf`·`3c1e5d0`·`ffe450a`·`fa08969`·`3ddc520`·`848202b`·`88d14bb`·`860c1d0` + **B4-S1 4-commit** `e159499`·`e89163b`·`17adfa9`·`58557e2`)
+- 종단 검증 포인트: 발화 다양성 / 모달 동작 / Judge 5축 앵커 효과 / `runs/<sid>/metadata.json` 의 `cost` 섹션 + `GET /api/runs/<sid>` 의 `cost` 필드 + `/admin/runs` 적재 / 좌상단 ← 메인 + Game-ifier→"인터랙티브 빌더" 라벨 / 새로고침 시 메인 카드 깜빡임 0 / **ChatStream 모델 chip 표시 (planner/writer/editor 가 `3.1-pro-preview`, architect/builder 가 `2.5-pro`, 나머지 4 에이전트 가 `2.5-flash`) + pro 모델 응답 지연 허용 범위(현행 flash 대비 ~2배, 절대값 3-4초)**
 
 **우선순위 3 — 여유 시.**
 - Format Architect 인터랙티브 요소 지시 강화 (C 타입 채택률 + 본문 부합도)
 
 **마감 후 (별건 큐).**
-- 단가 placeholder 교정(gpt-5/claude-opus-4-7 실시세, `_PRICE_TABLE`/`_JUDGE_PRICE_TABLE` 두 출처 동기화)
+- 단가 placeholder 교정(gpt-5/claude-opus-4-7/**gemini-3.1-pro-preview** 실시세, `_PRICE_TABLE`/`_JUDGE_PRICE_TABLE` 두 출처 동기화)
 - Judge Panel 토큰 실측 (3 judge 함수 SDK usage 추출 + `tracker.record` 호출 추가)
 - cost_tracker `reset_run` 호출 추가 (메모리 누수 방지)
 - 고아 run 회수 (`task.cancel()` 트리거 신설)
@@ -244,4 +253,6 @@
 - Judge 통과 컷 gating
 - Fact-Checker 빈 응답 진단
 - `final_output.html` 저장 누락 케이스 진단
+- B4-S1 후속: `last_used_model` 을 SSE/ChatMessage 메타로 노출 → 폴백 발생 시 chip 라벨이 실제 사용 모델 반영
+- B4-S2: Newsroom 멀티프로바이더 전환 (Writer→GPT, Editor→Claude 등 선택적 라우팅)
 - prompt 튜닝 사이클
