@@ -29,6 +29,8 @@ logs/
 
 # --- AIDEN 실행 트레이스 (프로젝트 루트의 runs/ 만 — frontend/app/admin/runs/ 같은 동명 디렉터리 보호) ---
 /runs/
+# dev 가 backend/ 서브폴더에서 uvicorn 띄웠을 때 잘못 생성되던 위치 (RunManager 절대경로 fix 후엔 생성 안 됨)
+/backend/runs/
 
 # --- 비용 트래커 캐시 (일일 누적 등) ---
 .cache/

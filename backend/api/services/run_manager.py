@@ -21,6 +21,7 @@ from uuid import uuid4
 from backend.agents.concrete_agents import build_all_agents
 from backend.api.services.planning_selector import PlanningSelector, Selection
 from backend.api.services.sse_broker import SSEBroker
+from backend.core.settings import PROJECT_ROOT
 from backend.orchestrators.full_pipeline import FullPipeline
 from backend.orchestrators.trace_logger import TraceLogger
 from backend.storage.outputs_store import upsert_output
@@ -136,9 +137,19 @@ class RunManager:
     한 프로세스 내 여러 run 동시 지원. 외부 큐/Celery 없이 인-프로세스 백그라운드.
     """
 
-    def __init__(self, sse_broker: SSEBroker, runs_base_dir: str = "runs") -> None:
+    def __init__(
+        self,
+        sse_broker: SSEBroker,
+        runs_base_dir: str | Path | None = None,
+    ) -> None:
+        # cwd 종속 회피: 기본값을 ``PROJECT_ROOT / "runs"`` 절대경로로 둔다.
+        # 기존 ``"runs"`` 상대경로는 dev 가 backend/ 서브폴더에서 uvicorn 띄울 때
+        # 저장(cwd 종속) ↔ trace_loader.RUNS_DIR(절대경로) 불일치 → 모든 GET 404 유발.
+        # 운영(Railway) 은 cwd=PROJECT_ROOT 라 잠복 — dev 에서만 노출되던 버그.
         self._sse_broker = sse_broker
-        self._runs_base_dir = runs_base_dir
+        self._runs_base_dir = (
+            str(runs_base_dir) if runs_base_dir else str(PROJECT_ROOT / "runs")
+        )
         self._active: dict[str, asyncio.Task] = {}
 
     # ------------------------------------------------------------------
