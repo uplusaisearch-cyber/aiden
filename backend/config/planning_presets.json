@@ -1,0 +1,101 @@
+{
+  "angles": [
+    {
+      "key": "contrast",
+      "label": "대조/충돌",
+      "directive": "통념을 뒤집는 반대 시각으로 접근",
+      "enabled": true
+    },
+    {
+      "key": "ranking",
+      "label": "큐레이션/랭킹",
+      "directive": "TOP N 선별·순위 형식",
+      "enabled": true
+    },
+    {
+      "key": "narrative",
+      "label": "1인칭 서사",
+      "directive": "개인 경험담 톤으로 풀기",
+      "enabled": true
+    },
+    {
+      "key": "howto",
+      "label": "하우투 가이드",
+      "directive": "단계별 실행법 중심",
+      "enabled": true
+    },
+    {
+      "key": "data",
+      "label": "데이터/근거",
+      "directive": "수치·통계 기반 논증",
+      "enabled": true
+    },
+    {
+      "key": "trend",
+      "label": "트렌드 진단",
+      "directive": "\"요즘 ~하는 이유\" 진단",
+      "enabled": true
+    },
+    {
+      "key": "compare",
+      "label": "비교/선택",
+      "directive": "A vs B 의사결정 도움",
+      "enabled": true
+    },
+    {
+      "key": "quiz",
+      "label": "퀴즈/진단 결합",
+      "directive": "유형테스트·자가진단 결합",
+      "enabled": true
+    },
+    {
+      "key": "event_tie",
+      "label": "시의성/이벤트 연계",
+      "directive": "실제 PlusTap 이벤트와 묶기",
+      "enabled": false
+    }
+  ],
+  "audience_segments": [
+    {
+      "key": "twenties_newbie",
+      "label": "20대 사회초년생",
+      "persona": "첫 직장, 가처분소득 적음, 자기계발 관심"
+    },
+    {
+      "key": "twenties_student",
+      "label": "20대 대학생·취준생",
+      "persona": "가성비 극민감, 트렌드 흡수 빠름"
+    },
+    {
+      "key": "thirties_single",
+      "label": "30대 1인가구",
+      "persona": "자기투자·편의·시간 절약 중시"
+    },
+    {
+      "key": "thirties_worklife",
+      "label": "30대 워라밸 직장인",
+      "persona": "시간 > 돈, 효율·루틴 최적화"
+    },
+    {
+      "key": "side_hustler",
+      "label": "N잡러",
+      "persona": "부수입·생산성 도구·자동화 관심"
+    },
+    {
+      "key": "frugal",
+      "label": "알뜰소비러",
+      "persona": "할인·혜택·포인트 극대화"
+    },
+    {
+      "key": "early_adopter",
+      "label": "트렌드 얼리어답터",
+      "persona": "신기술·신상 선점"
+    }
+  ],
+  "rotation": {
+    "angle": "round_robin",
+    "segment": "rotate",
+    "dedup_window": 5,
+    "campaign_priority": false
+  }
+}
