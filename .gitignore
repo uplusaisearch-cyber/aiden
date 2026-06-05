@@ -43,3 +43,6 @@ Thumbs.db
 
 # --- Claude Code 로컬 세션 ---
 .claude/
+backend/agents/prompts/.versions/
+backend/agents/prompts/_defaults/
+data/
