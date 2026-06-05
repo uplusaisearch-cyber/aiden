@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-05 후속 1차 + 폴리싱 (global-error · 토큰·비용 실측 종속 저장) 완료 |
-| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** (Judge 역할·발화·converter·콘텐츠 품질·상세 모달·global-error·토큰·비용 실측) |
-| **현재 Phase** | Phase 4 + 5 본구현 완료. **마감 2026-06-08** 잔여: 폴리싱 2차 (UI 3건 — PlaybackToggle 재정의·← 메인 위치·Game-ifier 라벨), 발표/결선 PT 자료(별도 채팅), 운영 종단 회귀 |
+| **마지막 업데이트** | 2026-06-05 폴리싱 2차 (run UI 3건 — PlaybackToggle 제거 · ← 메인 좌상단 · Game-ifier→인터랙티브 빌더) 완료 |
+| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** (run UI 3건) |
+| **현재 Phase** | Phase 1~4 본구현 완료, Phase 5 배포·라이브 검증 완료. **마감 2026-06-08** 잔여: 운영 종단 회귀(commits 9ae0424·fa7f1e1·402dfaf·3c1e5d0·ffe450a·fa08969 반영 후 1 run), 발표/결선 PT 자료(별도 채팅), (여유 시) Format Architect 인터랙티브 강화 |
 
 ---
 
@@ -24,7 +24,7 @@
 
 ---
 
-## Phase 2: 9 Agents + Orchestration ⬜
+## Phase 2: 9 Agents + Orchestration ✅ (완료 — 2026-05-25)
 
 - [x] 비용 안전장치 (cost_tracker + 예산 enforcement + dry-run 모드) _(2026-05-22)_
 - [x] Trend Scout system prompt 작성 _(2026-05-23)_
@@ -62,24 +62,24 @@
 - [x] data_flow_spec.md §6 Stage 3 보강 _(2026-05-25)_
 - [x] 묶음 3 Step 1 우선순위 1: P2 R3 fact_checker iter3 verification_log 누락 수정 _(2026-05-25)_
 - [x] 묶음 3 Step 1 우선순위 2: 재현성 E2E 3회 (맛집·안전·AI트렌드, 모두 PASS) _(2026-05-25)_
-- [ ] 묶음 3 우선순위 3: Judge Panel 오케스트레이터 (Stage 4)
-- [ ] 묶음 3 우선순위 4: 어드민 UI (system prompt 편집기)
-- [ ] 콘솔 end-to-end 통합 테스트
+- [x] 묶음 3 우선순위 3: Judge Panel 오케스트레이터 (Stage 4) _(`backend/orchestrators/judge_panel.py` + `_call_gemini_judge_default`/openai/anthropic 3 모델, weighted_total·outlier·consensus 산출)_
+- [x] 묶음 3 우선순위 4: 어드민 UI (system prompt 편집기) _(B3-S3-E Persona Lab — Monaco Editor + history/restore/rollback, 2026-06-05)_
+- [x] 콘솔 end-to-end 통합 테스트 _(재현성 E2E 3회 + B3-S3-C 라이브 검증 + 운영 라이브 9 에이전트 완주 `2026-06-05T00-50-24_c98b5ddc`)_
 
 ---
 
-## Phase 3: API Server ⬜
+## Phase 3: API Server ✅ (완료 — 2026-06-04)
 
-- [ ] FastAPI 기본 서버 구조
-- [ ] POST /api/generate 엔드포인트
-- [ ] GET /api/stream/{job_id} SSE 엔드포인트
-- [ ] 에이전트 trace 실시간 발행
-- [ ] CORS 설정
-- [ ] 에러 핸들링
+- [x] FastAPI 기본 서버 구조 _(`backend/api/main.py` + 9 routers: generate/stream/runs/judges/personas/prompts/admin_keys/admin_registry)_
+- [x] POST /api/generate 엔드포인트 _(`routers/generate.py` — 카테고리/자유입력 → run_manager 비동기 launch)_
+- [x] GET /api/stream/{job_id} SSE 엔드포인트 _(`routers/stream.py` + `sse_broker` ring buffer 500 + heartbeat 30s + replay)_
+- [x] 에이전트 trace 실시간 발행 _(`pipeline_start`/`chat`/`stage_change`/`cost_update`/`judge_evaluation`/`pipeline_complete`/`error` 이벤트, commit 4332407 라이브 검증 통과)_
+- [x] CORS 설정 _(`API_CORS_ORIGINS` env + Vercel origin 연동, `allow_credentials=True`, commit 4332407)_
+- [x] 에러 핸들링 _(judge 404 분기 + `error.tsx`/`not-found.tsx`/`global-error.tsx` 3-layer + Gemini 503/빈응답 폴백 commit 87653d2)_
 
 ---
 
-## Phase 4: Frontend + Admin ⬜
+## Phase 4: Frontend + Admin ✅ (완료 — 2026-06-05)
 
 - [x] Next.js 14 프로젝트 셋업 _(2026-05-26 · B3-S3-A)_
 - [x] Tailwind + shadcn/ui 설정 _(2026-05-26 · B3-S3-A)_
@@ -119,7 +119,7 @@
 - [x] **B3-S3-F 에이전트 상세 모달** — 트레이스 버블 클릭 → 모달, 같은 agent_id 의 iter별 메시지를 Base UI Tabs 로 묶음. Writer(본문 word-diff 좌/우 컬럼) / Fact-Checker(verified·unverified·corrected 색구분) / Devils(문제→제안 쌍 카드) / Editor(accepted·rejected 2열) 전용 렌더러 4종 + 나머지 5종 `GenericDetail` 공통 카드. Judge 버블 미적용(B3-S3-D 별도 시각화). 백엔드 0 변경, 프론트 단일 commit _(2026-06-05, commit 402dfaf)_
 - [x] **global-error.tsx 최후 경계** — `app/global-error.tsx` 신규(인라인 minimal style, system-ui, 자체 `<html><body>`). `reset()` 미사용 + `window.location.reload()` (global 상황 회복 불가 케이스 대비). 새로고침 버튼 1개에만 브랜드 핑크 액센트. `error.tsx`/`not-found.tsx` 는 commit 2d7dfb1 본구현 그대로 유지(명세 요구사항 이미 충족) _(2026-06-05, commit 3c1e5d0)_
 - [x] **토큰·비용 실측 종속 저장** — `cost_tracker._runs[run_id]` 에 `prompt_tokens`/`completion_tokens` 필드, `record()` 시그니처에 토큰 keyword 인자. `llm_clients.py:338` 호출에서 SDK 실측 토큰(`p_tok`/`c_tok`) 전달. `trace_logger.write_metadata(cost_summary=)` 인자 추가 → `metadata["cost"]` 에 newsroom 실측 + judge 추정 breakdown 저장(`is_actual_tokens` 플래그). `RunDetail.cost: dict \| None` 신규 필드로 API 노출. **NowPlayingPanel 의 UsageCard 제거**(4→3 카드). **SSE 보호 최우선** — `stream.py` / `useRunStream.ts` / `sse_broker.py` diff 0, `onCostUpdate` 리스너+state 필드는 dead 데이터로 유지. backend 49 PASS, npm build PASS _(2026-06-05, commit ffe450a)_
-- [ ] **(폴리싱 2차)** UI 3건 — PlaybackToggle 의 "인스턴트/재생" 가 no-op + "재생" 단어 오독 소지 / "← 메인" 헤더 우측 배치 시선 분산 / "Game-ifier" 라벨 영한 혼용. 다음 세션에서 묶어 처리
+- [x] **(폴리싱 2차)** UI 3건 — PlaybackToggle 컴포넌트 삭제 (no-op 토글 제거) / ← 메인을 헤더 우측 → 풀폭 슬림 top bar 좌상단 (가운데 헤더 좌측 단일 정렬로 정리) / `personas.yaml` `stages.gameifier.display_name` "Game-ifier" → "인터랙티브 빌더" (internal key 불변). 에러/폴백 ← 메인 4곳(`run/[id]:64,99` / `error.tsx:46` / `not-found.tsx:20`) 보존. npm run build PASS _(2026-06-05, commit fa08969)_
 - [ ] (마감 점검) 배포 안정성 — 운영 환경에 fa7f1e1·402dfaf·3c1e5d0·ffe450a 반영 후 1 run 회귀 (발화 다양성·모달·Judge 앵커·`metadata.cost` 섹션 + `RunDetail.cost` 종단 검증)
 - [ ] (여유 시) Format Architect 인터랙티브 요소 지시 강화 — C 타입 채택률·본문 부합도 개선
 - [ ] 발표/결선 PT 자료 — 별도 채팅에서 진행
@@ -172,6 +172,7 @@
 | 2026-06-05 | **Part B 콘텐츠 품질 패치 (출처 필터 + Judge 5축 앵커)** — Writer md 에 "출처 채택·배제 규칙"(현재일 이후 미래 날짜 출처 배제, 익명/비특정 도메인 배제(아하·나무위키·개인 블로그 등), 공신력 소스 우선(언론사·공공기관·통계·공식 채널)). Fact-Checker md 에 "출처 위반 강제 적시"(미래 날짜·익명 도메인 → unverified, 사실 오류 → corrected + correction 필드, summary 에 `[출처 위반]` / `[사실 오류]` 형식 명시, **검증 로직 무약화** 명문화). Judge 3개 (`10/11/12`) 에 5축 정성 앵커(`발행 가능 / 주의 / 재작성 필요` 3단계, "70 컷" 같은 수치 표현 미사용). 가중치·산출식·outlier·JSON 출력 스키마 **무변경**. commit fa7f1e1. | 운영 weighted_total 67.2 원인 진단 결과 "콘텐츠가 실제로 약함"(미래 날짜 출처·비공신력 도메인) 우세 → 옵션 B-2 A+B 채택(생성측 + 평가 캘리브레이션). 가중치/컷 조정(C)은 점수 인플레·셀링포인트 훼손 우려로 보류, Judge gating 자체도 현재 코드 미구현이라 별건 안건. |
 | 2026-06-05 | **B3-S3-F 에이전트 상세 모달 (프론트 전용)** — 트레이스 버블 클릭 → 모달, 같은 `agent_id` 의 iter별 메시지를 Base UI `Dialog` + `Tabs` 로 묶음. Writer(본문 word-diff 좌/우 컬럼, LCS 백트래킹 자체 구현 `lib/wordDiff.ts`) / Fact-Checker(verified·unverified·corrected 색구분 카드) / Devils(문제→제안 쌍 카드 + scores 5축 그리드) / Editor(accepted·rejected 2열 + revision_instructions) 전용 렌더러 4종 + 나머지 5종(scout/analyst/planner/architect/builder) `GenericDetail` 공통 카드(중첩 객체 `<details>` 접힘). Judge 버블 미적용(B3-S3-D 별도 시각화 담당). 기존 디자인 토큰·`@base-ui/react` (이미 설치) 사용 — 신규 의존성 0. `ChatStream.tsx` 의 `<pre>` 펼침 제거 + `selectedAgentId` state + 같은 agentId messages 필터. commit 402dfaf (10 files, +1198/-13). | trace_converter 가 raw_json 으로 step output 전체를 ChatMessage 에 실어주는 구조라 추가 API 없이 모달이 데이터 그대로 활용. 발표 시 "Writer가 v1→v3로 글을 어떻게 고쳤나"·"Fact-Checker가 무엇을 걸렀나" 한눈에 보임. type-check + `npm run build` PASS. |
 | 2026-06-05 | **`global-error.tsx` 최후 경계 추가** — `app/global-error.tsx` 신규. 인라인 minimal style(`#0a0a0b`/`#f4f4f5`/system-ui), 자체 `<html lang="ko"><body>`. props 시그니처에서 `reset` 미수신 — global 상황은 layout 자체가 회복 불가일 수 있어 `window.location.reload()` 가 안전. 새로고침 버튼 1개에만 브랜드 핑크(`#ff2e98`) 액센트. `error.tsx`/`not-found.tsx` 는 commit 2d7dfb1 구현이 이미 명세 요구사항 충족 → 무변경 유지. commit 3c1e5d0. | layout/Providers 자체 죽었을 때의 safety net. 마감 6/8 발표 시 "백색 깨진 페이지" 보이는 최악 케이스 방어. 자체 html/body 라 글로벌 토큰·다크 테마·Pretendard 못 받지만 인라인 색·폰트로 사용자 경험 보호 우선. |
+| 2026-06-05 | **폴리싱 2차 run UI 3건 완료** — (1) `PlaybackToggle` 컴포넌트 삭제 + `page.tsx` import/사용처 제거 (no-op + "재생" 단어 오독 소지 해결, replay 실 동작은 별건 v2). (2) 정상 라우트 ← 메인을 가운데 헤더 우측 → 풀폭 슬림 top bar 좌상단으로 이동, 가운데 헤더는 `justify-between` → 좌측 단일 정렬로 정리. 에러/폴백 ← 메인 4곳(`run/[id]:64,99` / `error.tsx:46` / `not-found.tsx:20`) 무변경. (3) `personas.yaml` `stages.gameifier.display_name` "Game-ifier" → "인터랙티브 빌더" 1줄. internal key `gameifier` 불변(5개 변경점 회피). 백엔드 docstring/log 의 `Game-ifier` 잔재는 비-display 라 유지. 명세 `docs/patches/2026-06-05_run-ui-cleanup.md`. `npm run build` PASS. commit fa08969(코드 4 files +13/-88) + 1c08389(명세 추가). | 라이브 UI/SSE/그리드/다크모드/회귀 0. 디자인 토큰·shadcn·브랜드 핑크 그대로. 신규 디자인 없음. |
 | 2026-06-05 | **토큰·비용 실측을 run 결과물에 종속 저장 (rev2 B-안전 방안)** — 라이브 표시는 *아예 포기*. `cost_tracker._runs[run_id]` 에 `prompt_tokens`/`completion_tokens` 필드, `record()` 시그니처에 토큰 keyword 인자(default 0). `llm_clients.py:338` 가 SDK 실측 토큰(`p_tok`/`c_tok`)을 함께 누적. `trace_logger.write_metadata(cost_summary=)` 인자 추가 → `metadata["cost"]` 에 `{newsroom: {is_actual_tokens: true, ...}, judge: {is_actual_tokens: false, note: "..."}, total: {...}}` breakdown 저장. judge 토큰은 `judge_panel._TOKEN_ESTIMATE` 호출당 2000/1000 고정 추정(실측 잡으려면 별도 3 함수 패치 필요 — 별건). `RunDetail.cost` 신규 필드로 API 노출, `routers/runs.py` 가 `metadata["cost"]` 끌어올림. **NowPlayingPanel UsageCard 제거**(4→3 카드). **SSE 보호 최우선** — `stream.py`/`useRunStream.ts`/`sse_broker.py` diff 0, `onCostUpdate` 리스너 + `totalTokens`/`totalCostUSD` state 필드는 회귀 위험 회피 위해 dead 데이터로 의도 유지. backend pytest 49 PASS, npm build PASS. commit ffe450a (8 files, +238/-31). | 진단 결과 라이브 UI 비용은 dead listener (`cost_update` 미발행) 라 항상 0이고, 종료 후엔 judge_panel 추정치만 표시되던 문제. 해결: 라이브 분기를 손대지 않고(SSE 회귀 표면 0) run 결과물에만 종속 저장 → 표시는 별도 히스토리 DB 작업이 가져감. **단가 placeholder(gpt-5 / claude-opus-4-7) 잔존** — 실시세 미확인, 본 작업에서 덮어쓰지 않음. |
 
 ---
@@ -201,7 +202,7 @@
 - **2026-06-05 · 단가 placeholder 잔존(gpt-5/claude-opus-4-7) · 영향도 낮음 · 미해소** — `llm_clients.py:97-98` 의 `_PRICE_TABLE` 과 `judge_panel.py:37-38` 의 `_JUDGE_PRICE_TABLE` 에 동일 placeholder 단가(gpt-5: 5.00/15.00, claude-opus-4-7: 15.00/75.00). `# placeholder` 주석 명시. 실시세 확인 후 교정 필요(두 출처 동기화). 본 작업(ffe450a)에서 덮어쓰지 않고 보존.
 - **2026-06-05 · cost_tracker `_runs` 메모리 누수 가능 · 영향도 낮음 · 미해소** — `reset_run(run_id)` 정의됐으나 호출처 0건 (grep). 장수명 프로세스에서 run 끝나도 `_runs` dict 에 누적. 마감 후 별건: `run_manager._execute` 의 finally 에 `tracker.reset_run(session_id)` 추가로 처리.
 - **2026-06-05 · Judge Panel 토큰 실측 미확보 · 영향도 낮음 · 의도된 상태** — newsroom 9 에이전트는 SDK usage 실측, judge_panel 3 함수는 `_TOKEN_ESTIMATE` 호출당 input=2000/output=1000 고정 추정 사용. `metadata.cost.judge.is_actual_tokens=false` + note 명시로 구분. Judge 실측 잡으려면 `_call_gemini_judge_default` / `openai_client.call_openai_judge` / `anthropic_client.call_anthropic_judge` 3 함수에 SDK usage 추출 + `tracker.record` 호출 추가 필요. 마감 후.
-- **2026-06-05 · UI 폴리싱 2차 잔여 3건 · 영향도 낮음 · 미해소** — (a) `PlaybackToggle` ("인스턴트/재생") 가 URL query 토글만이고 실 효과 0 (코멘트 "후속 단계"), "재생" 단어가 *replay* 로 오독 소지. (b) "← 메인" 버튼이 `app/run/[id]/page.tsx:131-136` 헤더 우측 PlaybackToggle 옆 배치 — 시선 분산. (c) 좌측 패널 "Game-ifier" 라벨 영한 혼용(`backend/config/personas.yaml::stages.gameifier.display_name` 단일 출처). 다음 세션 폴리싱 2차에서 묶어 처리.
+- **2026-06-05 · UI 폴리싱 2차 잔여 3건 · 영향도 낮음 · ✅ 해소(2026-06-05, commit fa08969)** — (a) `PlaybackToggle` 컴포넌트 삭제 — no-op + "재생" 오독 소지 동시 제거. replay 실 동작은 별건 v2 큐. (b) ← 메인을 풀폭 슬림 top bar 좌상단으로 이동, 가운데 헤더는 좌측 단일 정렬로 정리. (c) `personas.yaml` 의 `gameifier.display_name` 1줄 변경 → "인터랙티브 빌더". internal key 불변.
 
 ---
 
@@ -216,16 +217,11 @@
 5. B3-S3-E RESULT.md (`docs/patches/2026-06-04_b3-s3-e_RESULT.md`)
 6. **신규**: B3-S3-F 에이전트 상세 모달 + 발화 고도화 + Judge 앵커 (commits `fa7f1e1`, `402dfaf`)
 
-**우선순위 2 — 폴리싱 2차 (다음 세션).** UI 3건 묶음 처리:
-- `PlaybackToggle` — 효과 없는 토글 정리(컴포넌트 제거 또는 "재생" 라벨 재정의 + 실 동작 구현)
-- "← 메인" 버튼 — 위치 재배치 또는 강조 차등
-- "Game-ifier" 라벨 — 영한 일관화 (`backend/config/personas.yaml` 한 줄로 표시 문자열만 변경 가능)
+**우선순위 2 — 운영 종단 회귀.**
+- 운영 환경에 신규 commit (`9ae0424` Judge 역할 / `fa7f1e1` 발화·콘텐츠 품질 / `402dfaf` 에이전트 모달 / `3c1e5d0` global-error / `ffe450a` 토큰·비용 실측 / `fa08969` run UI 폴리싱 2차) 반영 후 1 run 회귀
+- 종단 검증 포인트: 발화 다양성 / 모달 동작 / Judge 5축 앵커 효과 / `runs/<sid>/metadata.json` 의 `cost` 섹션 + `GET /api/runs/<sid>` 의 `cost` 필드 노출 / 좌상단 ← 메인 + Game-ifier→"인터랙티브 빌더" 라벨 정상 표시
 
-**우선순위 3 — 운영 종단 회귀.**
-- 운영 환경에 신규 commit (`9ae0424` Judge 역할 / `fa7f1e1` 발화·콘텐츠 품질 / `402dfaf` 에이전트 모달 / `3c1e5d0` global-error / `ffe450a` 토큰·비용 실측) 반영 후 1 run 회귀
-- 종단 검증 포인트: 발화 다양성 / 모달 동작 / Judge 5축 앵커 효과 / `runs/<sid>/metadata.json` 의 `cost` 섹션 + `GET /api/runs/<sid>` 의 `cost` 필드 노출
-
-**우선순위 4 — 여유 시.**
+**우선순위 3 — 여유 시.**
 - Format Architect 인터랙티브 요소 지시 강화 (C 타입 채택률 + 본문 부합도)
 
 **마감 후 (별건 큐).**
