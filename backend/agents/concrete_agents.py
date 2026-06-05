@@ -119,6 +119,30 @@ def _scout_dynamic_vars() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------
+# B4-S2 C3: Strategy Planner INJECTED_* 동적 주입 헬퍼
+# ---------------------------------------------------------------------
+def _planner_dynamic_vars_factory(
+    selection: dict | None,
+) -> Callable[[], dict[str, str]]:
+    """Strategy Planner system prompt 의 4개 placeholder 치환값 제공 함수.
+
+    selection None / 누락 키 → 빈 문자열. 프롬프트의 "폴백 조건" 분기를 발동시켜
+    angle/SEG 자율 결정 흐름을 유지 (회귀 방어).
+    """
+    sel = selection or {}
+
+    def _vars() -> dict[str, str]:
+        return {
+            "INJECTED_ANGLE": str(sel.get("angle_label") or ""),
+            "INJECTED_ANGLE_DIRECTIVE": str(sel.get("angle_directive") or ""),
+            "INJECTED_SEGMENT": str(sel.get("segment_label") or ""),
+            "INJECTED_SEGMENT_PERSONA": str(sel.get("segment_persona") or ""),
+        }
+
+    return _vars
+
+
+# ---------------------------------------------------------------------
 # 9 에이전트 사양: short_key → (prompt_filename, yaml_agent_key, use_grounding, dynamic_vars_fn)
 # yaml_agent_key 는 config/agents.yaml 의 ``agents.<key>`` 매핑.
 # use_grounding 은 yaml 의 ``grounding`` 와 OR 결합 (yaml=true 면 무조건 ON).
@@ -147,17 +171,25 @@ def _load_model_routing() -> tuple[dict[str, str], dict[str, dict]]:
 
 def _build_agents(
     short_keys: tuple[str, ...],
+    planning_selection: dict | None = None,
 ) -> dict[str, Callable[[dict], dict]]:
     """yaml 매핑으로 에이전트별 GeminiClient 인스턴스 + callable 을 만든다.
 
     9 에이전트가 더 이상 단일 client 를 공유하지 않는다 — 에이전트별로 별칭 ↔
     실모델 ID 가 다를 수 있으며, ``config/agents.yaml`` 이 단일 출처가 된다.
+
+    B4-S2 C3: ``planner`` 가 short_keys 에 포함되면 INJECTED_* 4개 키를 동적 주입.
+    selection None 도 명시적으로 빈 문자열을 주입하여 프롬프트의 폴백 분기를 발동.
     """
     model_aliases, agents_cfg = _load_model_routing()
     loader = PromptLoader()
+    planner_dyn_fn = _planner_dynamic_vars_factory(planning_selection)
     result: dict[str, Callable[[dict], dict]] = {}
     for short_key in short_keys:
         prompt_filename, yaml_key, default_grounding, dyn_fn = _AGENT_SPECS[short_key]
+        # B4-S2 C3: planner 의 정적 None dyn_fn 을 selection-bound factory 로 교체.
+        if short_key == "planner":
+            dyn_fn = planner_dyn_fn
         spec = agents_cfg.get(yaml_key, {})
         alias = spec.get("model", "gemini_flash")
         # use_grounding: yaml 명시 우선, 미명시면 spec default.
@@ -178,14 +210,17 @@ def _build_agents(
 
 def build_topic_newsroom_agents(
     llm_client: GeminiClient | None = None,
+    planning_selection: dict | None = None,
 ) -> dict[str, Callable[[dict], dict]]:
     """Topic Newsroom 용 3개 에이전트 callable 생성.
 
     ``llm_client`` 는 호환을 위한 옵션 — 무시되며 yaml 매핑 기반 client 가 사용된다.
+    ``planning_selection`` (B4-S2 C3) 은 planner 의 INJECTED_* 주입용. None 이면
+    빈 문자열 주입 → 프롬프트 폴백 분기 발동.
     """
     if llm_client is not None:
         logger.debug("build_topic_newsroom_agents: llm_client 인자는 무시됨 (yaml 매핑 사용)")
-    return _build_agents(("scout", "analyst", "planner"))
+    return _build_agents(("scout", "analyst", "planner"), planning_selection=planning_selection)
 
 
 def build_content_newsroom_agents(
@@ -208,13 +243,17 @@ def build_gameifier_agents(
 
 def build_all_agents(
     llm_client: GeminiClient | None = None,
+    planning_selection: dict | None = None,
 ) -> dict[str, Callable[[dict], dict]]:
     """9개 에이전트 전체 callable 생성. FullPipeline 입력용.
 
     ``llm_client`` 는 legacy 시그니처 호환을 위한 옵션 — 무시된다.
     각 에이전트는 ``config/agents.yaml`` 의 ``agents.<key>.model`` 별칭으로
     별도 ``GeminiClient`` 를 받는다.
+
+    ``planning_selection`` (B4-S2 C3): Strategy Planner 에 INJECTED_* 동적 주입.
+    None 이면 빈 문자열 주입 → 프롬프트 폴백 분기 발동 (자율 흐름 유지).
     """
     if llm_client is not None:
         logger.debug("build_all_agents: llm_client 인자는 무시됨 (yaml 매핑 사용)")
-    return _build_agents(tuple(_AGENT_SPECS.keys()))
+    return _build_agents(tuple(_AGENT_SPECS.keys()), planning_selection=planning_selection)

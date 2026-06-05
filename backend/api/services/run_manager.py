@@ -251,7 +251,12 @@ class RunManager:
         # 9 에이전트는 config/agents.yaml 의 ``agents.<key>.model`` 별칭으로
         # 에이전트별 GeminiClient 를 받는다. 503/429 시 ``gemini-2.5-flash-lite`` 폴백 유지.
         # env ``AIDEN_GEMINI_MODELS`` 가 설정되면 전 에이전트가 동일 chain 으로 강등 (디버그).
-        agents = build_all_agents()
+        # B4-S2 C3: planner 에 INJECTED_* 4개 키 동적 주입.
+        # selection None (selector 실패) 도 명시 전달 — factory 가 빈 문자열 produce →
+        # 프롬프트의 폴백 분기 발동해 자율 흐름 유지 (회귀 안전).
+        agents = build_all_agents(
+            planning_selection=dict(selection) if selection is not None else None,
+        )
 
         judge_panel = None
         if not skip_judge:
