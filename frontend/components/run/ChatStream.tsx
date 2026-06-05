@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
 import { cn } from "@/lib/utils";
+import { AgentDetailModal } from "./AgentDetailModal";
 
 interface ChatStreamProps {
   messages: ChatMessage[];
@@ -73,15 +74,18 @@ function buildItems(messages: ChatMessage[]): RenderItem[] {
 function MessageBubble({
   msg,
   persona,
+  onOpen,
 }: {
   msg: ChatMessage;
   persona: Persona | undefined;
+  onOpen: (agentId: string) => void;
 }) {
-  const [showRaw, setShowRaw] = useState(false);
   const emoji = persona?.emoji ?? "💬";
   const name = persona?.display_name ?? msg.agent_id;
   const color = persona?.color_hex ?? "#6B7280";
   const text = msg.humanized || msg.headline || msg.body_text || "(내용 없음)";
+  // Judge 버블은 본 모달 대상이 아님(B3-S3-D 별도 시각화). 클릭 비활성, 정적 표시.
+  const isJudge = msg.agent_id.startsWith("judge-");
 
   return (
     <div className="flex gap-3 py-2">
@@ -110,18 +114,19 @@ function MessageBubble({
             </span>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowRaw((v) => !v)}
-          className="block w-full rounded-md border border-border-subtle bg-bg-elevated/70 p-2 text-left font-korean text-sm text-text-primary transition hover:border-border-strong"
-          title="클릭 → raw_json 토글"
-        >
-          {text}
-        </button>
-        {showRaw && (
-          <pre className="mt-1 overflow-x-auto rounded border border-border-subtle bg-bg-primary p-2 font-mono text-[10px] text-text-secondary">
-            {JSON.stringify(msg.raw_json, null, 2)}
-          </pre>
+        {isJudge ? (
+          <div className="block w-full rounded-md border border-border-subtle bg-bg-elevated/70 p-2 text-left font-korean text-sm text-text-primary">
+            {text}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpen(msg.agent_id)}
+            className="block w-full rounded-md border border-border-subtle bg-bg-elevated/70 p-2 text-left font-korean text-sm text-text-primary transition hover:border-accent-pink"
+            title="클릭 → 상세 모달"
+          >
+            {text}
+          </button>
         )}
         {msg.badges.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
@@ -152,6 +157,12 @@ export function ChatStream({ messages, personas }: ChatStreamProps) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [newCount, setNewCount] = useState(0);
+  // 모달 진입점: 클릭한 에이전트의 모든 iter 메시지를 모아 AgentDetailModal 에 전달.
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const selectedMessages = useMemo(() => {
+    if (!selectedAgentId) return [];
+    return messages.filter((m) => m.agent_id === selectedAgentId);
+  }, [messages, selectedAgentId]);
 
   // 자동 스크롤 (사용자가 위로 올렸으면 OFF)
   useEffect(() => {
@@ -214,10 +225,22 @@ export function ChatStream({ messages, personas }: ChatStreamProps) {
               key={item.key}
               msg={m}
               persona={personas[m.agent_id]}
+              onOpen={setSelectedAgentId}
             />
           );
         })}
       </div>
+      {selectedAgentId && (
+        <AgentDetailModal
+          open={selectedAgentId !== null}
+          onOpenChange={(o) => {
+            if (!o) setSelectedAgentId(null);
+          }}
+          agentId={selectedAgentId}
+          iterMessages={selectedMessages}
+          persona={personas[selectedAgentId]}
+        />
+      )}
       {!autoScroll && newCount > 0 && (
         <button
           type="button"
