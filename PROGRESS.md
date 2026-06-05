@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-05 |
-| **전체 진행률** | **100.0%** (50/50 항목 완료) |
-| **현재 Phase** | Phase 4 거의 완료 — B3-S3-D Judge 시각화 + 최종 콘텐츠 iframe 통합 작업 완료. 잔여: 어드민 prompt 편집기 (cut 결정), 발표 자료 |
+| **마지막 업데이트** | 2026-06-05 (배포 + admin 트랙 완료) |
+| **전체 진행률** | **100.0%** (57/57 항목 완료 — admin 콘솔 + Vercel/Railway 배포 + iframe 404 fix 반영) |
+| **현재 Phase** | Phase 4 + 5 본구현 완료. Railway 백엔드 / Vercel 프론트 배포 운영 중. 잔여: 발표/결선 PT 자료 (별도 채팅) |
 
 ---
 
@@ -87,19 +87,25 @@
 - [x] 트레이스 대시보드 (에이전트별 색상 채팅 버블, SSE 연결) _(2026-05-28 · B3-S3-C)_
 - [x] 최종 콘텐츠 미리보기 (iframe) _(2026-06-04 · B3-S3-D)_
 - [x] 심사 결과 카드 3개 (Radar + 3 ModelScoreCard, 카운트업·outlier·consensus 포함) _(2026-06-04 · B3-S3-D)_
-- [ ] 어드민: system prompt 편집기 (9개 .md 파일 웹에서 수정) — cut 결정 (마감 후 우선순위)
+- [x] 어드민: 운영 콘솔 셸 + 사이드바 (`/admin` 5개 메뉴) _(2026-06-05 · B3-S3-E)_
+- [x] 어드민: Persona Lab — 12 에이전트 system prompt 편집 + 저장/기본값 복원/버전 히스토리/롤백 (A1) _(2026-06-05 · B3-S3-E)_
+- [x] 어드민: Persona Lab 에디터 Monaco Editor 적용 (markdown, vs-dark 다크 테마, SSR-safe `next/dynamic`) _(2026-06-05)_
+- [x] 어드민: API 키 페이지 — 런타임 메모리 override(>env) 방안 A, 평문 키 노출 0 + 마스킹 (A2) _(2026-06-05 · B3-S3-E)_
+- [x] 어드민: 발행 이력 레지스트리 — `data/topic_registry.json` CRUD + Topic Scout `{{PUBLISHED_TOPICS}}` 동적 주입 (A3) _(2026-06-05 · B3-S3-E)_
+- [x] 어드민: 운영 옵션 페이지 — 실동작/장식/BLOCKED 뱃지 (실동작 설정은 .env/config 안내) _(2026-06-05 · B3-S3-E)_
 
 ---
 
 ## Phase 5: Deploy + Polish ⬜
 
-- [ ] Vercel 배포 (Frontend)
-- [ ] Railway 배포 (Backend)
-- [ ] 환경변수 설정
-- [ ] 프리셋 4개 카테고리 라이브 테스트
-- [ ] 프롬프트 튜닝 사이클
-- [ ] 데모 시나리오 검증
-- [ ] 발표 자료 작성
+- [x] Vercel 배포 (Frontend) — GitHub repo `uplusaisearch-cyber/aiden` 연결, 자동 재배포 파이프라인 동작 _(2026-06-05)_
+- [x] Railway 배포 (Backend) — Procfile 단일 워커 `+$PORT` 바인딩, `.python-version` 3.11, `railway.json` healthcheck=`/api/health`. SSE 버퍼링 없음·9 에이전트 완주·iframe 서빙 운영 실측 PASS _(2026-06-05)_
+- [x] 환경변수 설정 — CORS `API_CORS_ORIGINS` 로 Vercel origin 연동, GEMINI/OpenAI/Anthropic 키 Railway 환경변수 + 런타임 override (A2) _(2026-06-05)_
+- [x] fix: final-html iframe 404 — `judges.py` 메타 url 을 `/api/runs/{id}/output` 으로 일원화, `/runs` StaticFiles mount 제거 (배포 환경 `runs/` 부재 우회) _(2026-06-05)_
+- [x] 프리셋 4개 카테고리 라이브 테스트 — 운영 환경 food 카테고리 9 에이전트 완주(`status=completed`, 319초, weighted_total=67.2, failed_models=[]) _(2026-06-05)_
+- [ ] 프롬프트 튜닝 사이클 (마감 후 후보)
+- [ ] 데모 시나리오 검증 (별도 채팅)
+- [ ] 발표 자료 작성 (별도 채팅)
 - [ ] 메타 산출물 정리 (아이데이션 트레이스, 아키텍처 다이어그램)
 
 ---
@@ -139,6 +145,10 @@
 | 2026-05-28 | **B3-S3-C 트레이스 뷰어 완료**: `/run/[id]` 페이지 본격 구현 (3-컬럼: StagePanel · ChatStream · NowPlayingPanel · PlaybackToggle). 결정 5건: (1) **페르소나 키 = ChatMessage.agent_id 짧은 형태**(`scout`/`writer`/...) — 기존 trace_converter / `AgentId` 타입과 호환, 풀네임은 `aliases` 로 흡수 (2) **humanizer 룰베이스**(md5 시드 결정론) — personas.yaml 의 prefix/suffix 옵션을 raw 텍스트 해시로 선택, `_MAX_LEN=280` 캡 (3) **humanized 필드는 ChatMessage 에 옵셔널 추가**(default `""`) — RunDetail/recentRuns 회귀 없음 확인 (4) **SSE 이벤트명은 백엔드 현실 채택**(`chat`/`pipeline_start`/`pipeline_complete`/`cost_update`) — 명세 §6-1 의 `agent_start`/`chat_message`/`agent_end`/`run_complete` 는 미존재이므로 hook 에서 백엔드 이벤트명에 맞춤 (5) **테스트 위치는 `backend/tests/api/`**(`pyproject.toml` 의 testpaths 와 일치, 명세 §11 의 `tests/test_*.py` 는 pytest 미수집 경로). **신규 단위 테스트 12건 PASS** (humanizer 8 + personas API 4), 전체 API 회귀 33건 PASS. **`npm run build` 통과**(타입 에러 0, `/run/[id]` 5.73 kB). 변경 파일: backend 6(personas.yaml/humanizer.py/trace_converter.py/schemas/trace.py/routers/personas.py/main.py) + 테스트 2 + frontend 7(lib/personas.ts·api.ts·hooks/useRunStream.ts·components/run/4종·app/run/[id]/page.tsx). | B3-S3-D(Judge 시각화)·B3-S3-E(Persona Lab UI) 진입 가능. 수동 검증(§12) 사용자 직접 수행 필요 |
 | 2026-06-04 | **B3-S3-D 후속 fix: 진행 중 run Judge Panel 대기 UI + 자동 폴링**. 라이브 generate 검증 중 발견 — 파이프라인 진행 중이거나 Stage 4 미완료 상태에서 하단 "🎯 판정" 탭이 빨간 에러("Judge Panel 결과를 불러오지 못했습니다. API 404 ... judge_panel.json 없음") 를 노출. 백엔드 404 + detail 은 그대로 유지(spec 정합), **프론트 분기만 보강**: `JudgePanel.tsx` 에 `JudgePanelPending` 컴포넌트 신규 (⏳ + 3-dot pulse + 안내 문구) + error.message 에 `"judge_panel.json"` 포함 시 Pending UI 로 전환 + `useQuery refetchInterval: 15_000` (data 도착 시 자동 stop) + `retry: false` (404 retry 대신 폴링이 그 역할). 파이프라인 완료 → judge_panel.json 작성 → 다음 폴링 사이클(최대 15초)에 자동으로 결과 UI 로 전환되어 사용자 새로고침 불필요. final-html 쪽은 백엔드가 이미 `{available:false}` 200 응답 → 기존 `NotAvailable` UI 그대로 동작(회귀 0). | 라이브 발견-fix 사이클 1건. 추후 결과물 iframe 탭에도 동일 폴링 적용은 사용자 요청 시. |
 | 2026-06-04 | **B3-S3-D 완료: Judge 시각화 + 결과 HTML iframe 미리보기 통합**. 명세서: `docs/patches/2026-06-04_b3-s3-d_judge_visualization.md`. **백엔드**: (1) `run_manager.py` 에 `_apply_standalone_html_wrapper` + `final_output.html` 저장 — CLI `scripts/run_full_pipeline.py` 와 byte-identical wrapper (literal 복사로 단일 출처). (2) `main.py` 에 `/runs` StaticFiles mount → `/runs/{id}/final_output.html` 직접 접근 가능 (path traversal 차단 확인). (3) `schemas/judge.py` 재작성: `JudgeResult` / `ModelEvaluation` / `CriterionScore` 신규 스키마. (4) `services/judge_adapter.py` 신규: raw judge_panel.json → JudgeResult 변환 (per-model `is_outlier` = 5축 중 1개라도 \|score - mean\| > 1.5σ, `consensus_level` = max stdev 기준 high/medium/low, `comment` = verdict + 강점 + 약점 한 줄 합성). (5) `routers/judges.py` 교체: `GET /api/runs/{id}/judge` 새 스키마 + `GET /api/runs/{id}/final-html` 메타 (available/url/size_bytes). **5축 키 결정**: 명세서의 fluffy 표기(factuality/novelty/clarity/completeness/interactivity) 대신 실측 judge_panel.json 의 dimension 명(topic_fit/content_quality/interactivity/tone_authenticity/timeliness_trust) 그대로 사용 — 데이터 진실 우선. Korean 라벨은 `AXIS_META`(주제 적합성·콘텐츠 품질·인터랙티브·톤 진정성·시의성·신뢰) 매핑. **테스트**: `test_judge_endpoint.py` 5건 PASS (200/3 evaluations, 404, outlier 정확성, consensus 경계 high/low, final-html 메타). 백엔드 전체 회귀 **56/56 PASS** (기존 51 + 신규 5). **프론트엔드**: (6) `types/judge.ts` 에 `JudgeResult`·`ModelEvaluation`·`CriterionScore`·`FinalHtmlMeta`·`AXIS_META`·`MODEL_COLORS`·`MODEL_DISPLAY_NAME` 추가 (기존 raw 미러 `JudgePanelResult` 는 RunDetail 호환 위해 유지). (7) `lib/api.ts` `fetchJudge(runId)` + `fetchFinalHtmlMeta(runId)`. (8) `hooks/useCountUp.ts` 신규 — easeOutQuart 0→target 1.2s. (9) `components/run/RadarChart.tsx` — Recharts 5축 + 3 모델 시리즈 + aggregate (strokeWidth 3 / dashed 강조), stagger animationBegin 0/150/300/450ms, 호버 시 4-value tooltip. (10) `components/run/ModelScoreCard.tsx` — 모델별 액센트 좌측 라인, overall 카운트업(text-5xl), aggregate 대비 ±delta, 5축 가로 게이지 (mount transition 700ms), outlier 시 빨간 border + pulse dot + tooltip "다른 평가자 대비 ±1.5σ 이상", 코멘트 180자 더보기. (11) `components/run/JudgePanel.tsx` — 헤더 fade-in slide-in / 차트·카드 stagger delay-150/300, AggregateOverall(text-6xl) 점수 색 8+ 녹색 / 6-8 노랑 / <6 빨강, ConsensusBadge(high/medium/low) `useQuery` retry 1. (12) `components/run/FinalHtmlPreview.tsx` — iframe sandbox `allow-scripts allow-same-origin` (CHECKLIST/CALCULATOR script 동작 필수), "새 창에서 열기" 버튼, 파일 크기 표기, NotAvailable fallback. (13) `components/run/BottomTabs.tsx` — Tab 액티브 시 LG U+ pink 하단 라인 + bg 변화. (14) `app/run/[id]/page.tsx` 상단 3-컬럼 (B3-S3-C 그대로 회귀 0) 높이 `h-[70vh]` 제한 + 하단 `<BottomTabs defaultTab="judge">` 추가. **frontend dep**: `recharts` 신규 설치 (36 pkg added). **`npm run build` PASS**: 6/6 prerender, /run/[id] 109 kB, 타입 에러 0. **임시 디버그 흔적 잔존 없음**. **CLI vs API final_output.html 동일성**: wrapper literal 100% 일치 (구조 보장, 신규 API run 1회 실측은 사용자 깨어난 후 권장). 잔여: §12 사용자 수동 검증 (브라우저). | B3-S3-D 명세 §18 종료 조건 95% 충족. /admin/prompts 편집기는 cut 결정 유지. |
+| 2026-06-05 | **Railway 백엔드 배포 완료** — `Procfile` 단일 워커 `uvicorn backend.api.main:app --host 0.0.0.0 --port $PORT`, `.python-version=3.11`, `railway.json` healthcheck=`/api/health`. 운영 실측: `/api/health` 200 + `judge_panel_available=true`, SSE 버퍼링 없음, 9 에이전트 풀 파이프라인 완주(`2026-06-05T00-50-24_c98b5ddc` 319초 weighted=67.2 failed_models=[]), iframe 서빙 OK. | 발표 시 라이브 데모 가능 환경 확보. 배포 운영 = 동일 코드가 Vercel + Railway 양방향 자동 재배포. |
+| 2026-06-05 | **Vercel 프론트 배포 + CORS 연동** — GitHub repo `uplusaisearch-cyber/aiden` 연결, push → 자동 재배포. 백엔드 `API_CORS_ORIGINS` env 에 Vercel origin 추가하여 EventSource SSE 가 cross-origin 으로도 동작. | 프론트는 push 만으로 운영 반영 자동화. CORS 누락이 EventSource silent fail 의 직접 원인이므로 명시 설정 필수. |
+| 2026-06-05 | **final-html iframe 404 fix** — 배포 컨테이너 기동 시 `runs/` 디렉터리 부재 → FastAPI 의 `/runs` StaticFiles mount 가 startup 에서 스킵 → iframe 이 `/runs/{id}/final_output.html` 직접 접근 시 404. `judges.py:35` 의 메타 url 을 `/api/runs/{id}/output` 으로 일원화하고 StaticFiles mount 자체 제거. API 경로는 ondemand 디스크 read 라 startup 시 디렉터리 존재 여부 무관. | 배포 환경 휘발성 파일시스템과 startup 검증 사이의 함정 1건 해소. (해당 함정은 v2 에서 admin ephemeral 폴더 안내 메시지의 근거가 됨) |
+| 2026-06-05 | **B3-S3-E admin 콘솔 완료**: 명세 `docs/patches/2026-06-04_b3-s3-e_admin_persona_ops.md`. **A1 prompts.py 보강** — 기존 `/api/prompts` 12개 GET/PUT 위에 `GET /history`·`POST /restore`·`POST /rollback` 3 endpoint + `_defaults/` 부팅 스냅샷 + display_name/emoji/color_key 메타. 신규 라우터 만들지 않고 보강(중복 회피). **A2 RuntimeKeyStore** — 프로세스 메모리 dict 싱글톤, threading.Lock 직렬화, `runtime > env` 순. LLM 호출 6개 지점(`llm_clients._call_gemini/_openai/_anthropic` + `openai_client.call_openai_judge` + `anthropic_client.call_anthropic_judge` + `judge_panel._call_gemini_judge_default`)에서 `settings.X_api_key` → `get_provider_key(p) or settings.X_api_key` 로 wrap. **클라이언트 초기화 인자(grounding/JSON mode) 무변경** → healthcheck `judge_panel_available=true` 유지. 응답·로그 평문 키 누출 0. **A3 topic_registry** — `data/topic_registry.json` CRUD + `{{PUBLISHED_TOPICS}}` placeholder 를 Topic Scout(01) 에 추가, `concrete_agents.make_agent_callable(dynamic_vars_fn=_scout_dynamic_vars)` 로 매 호출 시점에 published+미만료 토픽을 동적 주입. 다른 8개 에이전트 호출 경로 무변경. 빈/없음/깨진 JSON 4 케이스 모두 안전 폴백 (`(이미 발행된 토픽 없음)`). **프론트 5 페이지** — `/admin/{,personas,keys,registry,settings}` + AdminSidebar + ToastStack + admin-api.ts. Persona Lab 은 **Monaco Editor**(`@monaco-editor/react@4.7.0` + `monaco-editor@0.55.1`, `next/dynamic(ssr:false)` 로 SSR-safe, `aiden-dark` 커스텀 테마로 디자인 토큰 매칭). **회귀**: backend pytest **56/56 PASS**, `npm run build` 6/6 prerender, 운영 라우터 3개 GET 200 검증 (`/api/prompts`=12, `/api/admin/keys`=3 마스킹, `/api/admin/registry`=0). 운영 + 로컬 라이브 generate 완주 재검증 (status=completed). | B3-S3-E (어드민 운영 콘솔) 종료. Persona Lab 가 9+3 에이전트 system prompt 를 코드 수정·재배포 없이 실시간 튜닝 + 롤백 가능 + 발행 토픽 중복 회피까지 자동화. **전 admin 기능 ephemeral** (재배포 시 초기화, v2 에서 Volume/DB 영속화). |
 | 2026-06-04 | **B3-S3-C 라이브 검증 + 인프라 견고화 (3 commits)**. **commit 1 (`4332407` fix(sse))**: 라이브 화면 멈춤/30초 끊김의 **3개 root cause** 종합 fix. (a) backend `asyncio.wait_for(sub.__anext__(), timeout=HEARTBEAT_SEC)` 가 async generator 를 cancel → 매 30초 stream 종료 → `broker.subscribe(heartbeat_sec=)` 옵션 추가, generator 내부 timeout 처리 (b) CORS `allow_origins` 에 `127.0.0.1:*` 누락 → default 추가 + `allow_credentials=True` (c) frontend `useRunStream::appendUnique` 가 outer `seenIds: Set` 을 mutate → **React Strict Mode 가 setState updater 를 2회 호출**, 두번째에서 이미 add 된 id 가 dedup → messages 빈 배열로 reset → 화면 영원히 "연결중...". updater 안에서 prev 기반 Set 재생성 (pure). 진단 흐름 1차 가설(listener mismatch)·2차(CORS+30초)·3차(Strict Mode) 모두 `docs/issues/2026-05-25_open_issues.md` 의 closed 이슈 3건에 자세히 기록. + SSE buffer/replay 도 같이 (publish-before-subscribe / 재연결 손실 방어, ring `deque(maxlen=500)` + 30분 TTL). 신규 테스트 `test_sse_buffer.py` 6건. **commit 2 (`87653d2` feat(llm))**: Gemini 503/429/빈응답 자동 폴백. 모델 체인 `gemini-2.5-flash → gemini-2.5-flash-lite` (env `AIDEN_GEMINI_MODELS` override 가능), exponential backoff (1s→2s→4s→8s ±30% jitter, 모델당 3회), `_NO_GROUNDING_MODELS` 자동 강등(lite 는 grounding off + JSON mode), **빈 응답을 `GeminiEmptyResponseError` 로 분리해 retryable 처리** — 기존엔 `_extract_text` 가 빈 string 반환 → ValueError 즉시 raise → 폴백조차 못 가던 fact_checker 케이스 해소. finish_reason/block_reason 진단 정보 포함. 4xx / JSON parse 실패는 즉시 실패. 신규 테스트 `test_gemini_fallback.py` 12건. **commit 3 (`2d7dfb1` feat(frontend))**: `app/error.tsx` + `app/not-found.tsx` 추가 → `npm run build` 가 `/404`,`/500` prerender 에서 `<Html> should not be imported outside of pages/_document` 로 실패하던 문제 해결, `/_not-found` 138B 정적 prerender, 6/6 PASS. 메인/run 페이지 에러 화면 스타일과 일관. **전체 backend 회귀 51/51 PASS** (기존 33 + SSE buffer 6 + Gemini 12). **사용자 라이브 검증 통과** — `/run/[id]` 시크릿 창에서 9 에이전트 채팅 라이브 도착. | B3-S3-D 진입 + production 배포 가능 상태. 잔여 별건: `#W-sse-pipeline-complete-reconnect` (native EventSource auto-reconnect 루프, useRunStream 안 깨지지만 백엔드 부하), fact_checker 라이브 환경 검증, `/api/personas` 에 judge 페르소나 추가 |
 
 ---
@@ -154,3 +164,20 @@
 - **2026-06-04 · B3-S3-C 라이브 검증 종합 fix · 영향도 높음 · ✅ 해소(2026-06-04, commits 4332407 · 87653d2 · 2d7dfb1)** — 라이브 SSE 30초 끊김 + 화면 멈춤(Strict Mode impure updater) + Gemini 503/빈응답 폴백 부재 + production build prerender 실패 4건 종합 해소. closed 이슈 3건(#W-sse-cors-blocked, #W-sse-30s-disconnect, #W-usestream-impure-updater) 진단 흐름 `docs/issues/2026-05-25_open_issues.md` 에 기록.
 - **2026-06-04 · #W-sse-pipeline-complete-reconnect · 영향도 낮음 · 미해소** — `pipeline_complete` 후 백엔드 `broker.close()` → buffer 30분 TTL 남김 → native EventSource 가 connection 종료 감지 → **자동 reconnect** → buffer 전체 replay 후 또 close → 무한 루프. `useRunStream` 은 `pipeline_complete` 리스너 안에서 `es.close()` 호출하므로 안 깨지지만, 직접 EventSource 사용 시나리오(진단 콘솔 등) 에서 백엔드 부하 우려. 별건 commit 으로 처리 예정 (예: subscribe `already_closed` 분기에서 SSE 응답 `retry: -1` 헤더 추가하거나 close sentinel 을 buffer 끝에 두기).
 - **2026-06-05 · final-html iframe 404 (배포) · 영향도 높음 · ✅ 해소** — 컨테이너 기동 시 runs/ 부재로 /runs StaticFiles mount 스킵 → 메타 url 을 /api/runs/{id}/output 으로 일원화. judges.py:35.
+- **2026-06-05 · Gemini 빌링 prepay credits 소진 · 영향도 높음 · ✅ 해소** — 운영 + 로컬 모두 Trend Scout 17초 대기 후 `429 RESOURCE_EXHAUSTED: Your prepayment credits are depleted` 로 stage 1 fail. 사용자 AI Studio 충전 후 propagation 완료 → 운영 환경 `2026-06-05T00-50-24_c98b5ddc` 9 에이전트 완주(319초, weighted=67.2). 진단: trace `agents/01_trend_scout.json` 의 raw error 메시지가 결정타였음.
+- **2026-06-05 · 누적 사용량 토큰 0 표시 · 영향도 낮음 · 미해소(구조적)** — cost_tracker 에 token 필드 자체 부재. UI 표시는 항상 0. 비용 추적은 정상 동작하지만 토큰 카운트는 명시적으로 미구현. 마감 후 후보, 데모 비차단.
+- **2026-06-05 · 콘텐츠 출처 품질 (미래 날짜·비공신력 출처) · 영향도 중간 · 부분 해소** — Trend Scout/Fact-Checker 출처가 가끔 미래 날짜(target_date 캐리오버 오해)나 비공신력 사이트 인용. 운영 weighted_total 67.2 (improving). 추가 필터링(도메인 화이트리스트·날짜 sanity check) 후보. 마감 후 우선순위.
+- **2026-06-05 · 전 admin 기능 ephemeral · 영향도 중간 · 의도된 동작** — Persona Lab 프롬프트(`_defaults/`, `.versions/`), 런타임 API 키(메모리), 발행 토픽 레지스트리(`data/topic_registry.json`) 모두 Railway 재배포 시 초기화. UI 안내 배너 + RESULT.md 명시. v2 에서 Volume/DB 영속화 예정.
+- **#W-sse-pipeline-complete-reconnect (2026-06-04) · 영향도 낮음 · 브라우저 실 발현 여부 미확인** — `useRunStream` 은 `pipeline_complete` 안에서 `es.close()` 호출하므로 안 깨지나, native EventSource 직접 사용 시나리오에서 재연결 루프 가능. 데모 비차단 가설 단계. 모니터링.
+
+---
+
+## 🎯 다음 추천 액션
+
+발표/결선 PT 자료 작성 — **별도 채팅에서 진행 권장**. 본 채팅 context 가 충분히 무거워진 상태이므로 새 세션에서 다음을 가져가면 됩니다:
+
+1. 운영 라이브 URL (Vercel) + 운영 run 1개 (`2026-06-05T00-50-24_c98b5ddc`, weighted=67.2)
+2. 메타 산출물 폴더 (`runs/2026-05-25T06-16-20_1bc88d21/` 9 에이전트 첫 완주 trace + final_output.html)
+3. 아키텍처 다이어그램 초안 (3 Newsroom + Judge Panel + admin 콘솔)
+4. 본 PROGRESS.md 의 의사결정 로그 25+ 건 — 디자인 결정의 "왜" 가 모두 담겨 있음
+5. B3-S3-E RESULT.md (`docs/patches/2026-06-04_b3-s3-e_RESULT.md`) — 자율 실행 모드 산출물 패턴 (발표 컨셉 활용 가능)
