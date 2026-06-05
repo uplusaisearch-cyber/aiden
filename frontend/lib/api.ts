@@ -206,6 +206,32 @@ export function outputDownloadUrl(runId: string): string {
 }
 
 // ---------------------------------------------------------------
+// B4-S1 — 9 에이전트 + Judge 3종 모델 매핑 (config 단일 출처)
+// ---------------------------------------------------------------
+
+export interface AgentModelEntry {
+  alias: string;
+  model_id: string;
+  grounding: boolean;
+}
+
+export interface AgentModelsResponse {
+  /** ChatMessage.agent_id (short key, 예: "writer") → 모델 메타 */
+  newsroom: Record<string, AgentModelEntry>;
+  /** Judge 모델 매핑 (예: { gemini: "gemini-2.5-pro", gpt: "gpt-5", ... }) */
+  judges: Record<string, string>;
+}
+
+export function fetchAgentModels(): Promise<AgentModelsResponse> {
+  return _fetchJson<AgentModelsResponse>(`${API_BASE}/api/agents/models`);
+}
+
+/** 모델 ID 를 채팅 버블 옆에 노출할 짧은 라벨로 축약. ``gemini-`` prefix 제거. */
+export function shortModelLabel(modelId: string): string {
+  return modelId.replace(/^gemini-/, "");
+}
+
+// ---------------------------------------------------------------
 // SSE 구독
 // ---------------------------------------------------------------
 export interface RunStreamHandlers {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRunStream } from "@/hooks/useRunStream";
+import { type AgentModelsResponse, fetchAgentModels } from "@/lib/api";
 import {
   fetchPersonas,
   type PersonasData,
@@ -20,12 +21,21 @@ export default function RunPage() {
 
   const [personas, setPersonas] = useState<PersonasData | null>(null);
   const [personasErr, setPersonasErr] = useState<string | null>(null);
+  // B4-S1: 모델 라벨용 — 실패해도 채팅 자체는 동작해야 하므로 silent fallback.
+  const [agentModels, setAgentModels] = useState<AgentModelsResponse | null>(
+    null,
+  );
 
   useEffect(() => {
     fetchPersonas()
       .then(setPersonas)
       .catch((e: unknown) => {
         setPersonasErr(e instanceof Error ? e.message : "unknown");
+      });
+    fetchAgentModels()
+      .then(setAgentModels)
+      .catch(() => {
+        // 라벨이 없어도 UI 정상 — 모델 매핑 fetch 실패는 silent.
       });
   }, []);
 
@@ -140,6 +150,7 @@ export default function RunPage() {
             <ChatStream
               messages={run.messages}
               personas={personas.personas}
+              agentModels={agentModels?.newsroom}
             />
           </div>
         </section>

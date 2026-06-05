@@ -29,6 +29,7 @@ from backend.api.deps import get_run_manager, get_sse_broker, get_uptime_sec  # 
 from backend.api.routers import (  # noqa: E402
     admin_keys,
     admin_registry,
+    agents_models,
     generate,
     judges,
     outputs,
@@ -92,6 +93,7 @@ def create_app() -> FastAPI:
     app.include_router(prompts.router)
     app.include_router(judges.router)
     app.include_router(personas.router)
+    app.include_router(agents_models.router)
     app.include_router(outputs.router)
     # B3-S3-E admin
     app.include_router(admin_keys.router)

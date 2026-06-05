@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChatMessage } from "@/lib/api";
+import { type AgentModelEntry, type ChatMessage, shortModelLabel } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
 import { cn } from "@/lib/utils";
 import { AgentDetailModal } from "./AgentDetailModal";
@@ -14,6 +14,8 @@ import { AgentDetailModal } from "./AgentDetailModal";
 interface ChatStreamProps {
   messages: ChatMessage[];
   personas: Record<string, Persona>;
+  /** ChatMessage.agent_id (short key) → 모델 매핑. B4-S1, undefined 시 라벨 미표시. */
+  agentModels?: Record<string, AgentModelEntry>;
 }
 
 interface RenderItem {
@@ -74,10 +76,12 @@ function buildItems(messages: ChatMessage[]): RenderItem[] {
 function MessageBubble({
   msg,
   persona,
+  modelEntry,
   onOpen,
 }: {
   msg: ChatMessage;
   persona: Persona | undefined;
+  modelEntry: AgentModelEntry | undefined;
   onOpen: (agentId: string) => void;
 }) {
   const emoji = persona?.emoji ?? "💬";
@@ -86,6 +90,7 @@ function MessageBubble({
   const text = msg.humanized || msg.headline || msg.body_text || "(내용 없음)";
   // Judge 버블은 본 모달 대상이 아님(B3-S3-D 별도 시각화). 클릭 비활성, 정적 표시.
   const isJudge = msg.agent_id.startsWith("judge-");
+  const modelLabel = modelEntry ? shortModelLabel(modelEntry.model_id) : null;
 
   return (
     <div className="flex gap-3 py-2">
@@ -101,10 +106,18 @@ function MessageBubble({
         {emoji}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="font-korean text-xs font-semibold text-text-primary">
             {name}
           </span>
+          {modelLabel && !isJudge && (
+            <span
+              className="rounded border border-border-subtle bg-bg-elevated px-1.5 py-0.5 font-mono text-[10px] leading-none text-text-muted"
+              title={modelEntry?.model_id}
+            >
+              {modelLabel}
+            </span>
+          )}
           <span className="font-mono text-[10px] text-text-muted">
             {formatTime(msg.timestamp)}
           </span>
@@ -152,7 +165,7 @@ function MessageBubble({
   );
 }
 
-export function ChatStream({ messages, personas }: ChatStreamProps) {
+export function ChatStream({ messages, personas, agentModels }: ChatStreamProps) {
   const items = useMemo(() => buildItems(messages), [messages]);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -225,6 +238,7 @@ export function ChatStream({ messages, personas }: ChatStreamProps) {
               key={item.key}
               msg={m}
               persona={personas[m.agent_id]}
+              modelEntry={agentModels?.[m.agent_id]}
               onOpen={setSelectedAgentId}
             />
           );
