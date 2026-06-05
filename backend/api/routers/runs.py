@@ -70,6 +70,11 @@ def get_run_detail(session_id: str) -> RunDetail:
             ),
         )
 
+    # 2026-06-05: metadata["cost"] 를 명시 필드로 끌어올림 (과거 run 은 None).
+    cost_section = (
+        raw["metadata"].get("cost") if isinstance(raw.get("metadata"), dict) else None
+    )
+
     return RunDetail(
         session_id=raw["session_id"],
         category=raw["category"],
@@ -84,6 +89,7 @@ def get_run_detail(session_id: str) -> RunDetail:
             f"/api/runs/{session_id}/output" if raw["final_html_exists"] else None
         ),
         metadata=raw["metadata"],
+        cost=cost_section,
     )
 
 

@@ -1,7 +1,13 @@
 /**
- * 우측 Now Playing 패널 — 4개 정보 카드.
+ * 우측 Now Playing 패널 — 3개 정보 카드.
  *
- * 명세 §9. 현재 에이전트 / Stage+iter / Elapsed / 누적 토큰·비용.
+ * 명세 §9 (rev2 2026-06-05). 현재 에이전트 / Stage+iter / Elapsed.
+ * 라이브 토큰·비용(UsageCard)은 2026-06-05 제거 — 백엔드가 `cost_update` 미발행이고
+ * judge_panel.cost_usd_estimate 한 줄만 들어와 표시값이 오해를 주던 문제.
+ * 실측 토큰·비용은 run 완료 시 `runs/<sid>/metadata.json`·`RunDetail.cost` 에 종속 저장하며,
+ * 표시는 별도 히스토리 작업에서 그 필드를 읽어 처리한다.
+ * `useRunStream` 의 `onCostUpdate` 리스너와 `totalTokens`/`totalCostUSD` 상태는
+ * SSE 회귀 위험 방지를 위해 의도적으로 유지(dead 데이터, 무해).
  */
 "use client";
 
@@ -131,25 +137,6 @@ function ElapsedCard({ ms }: { ms: number }) {
   );
 }
 
-function UsageCard({
-  tokens,
-  costUsd,
-}: {
-  tokens: number;
-  costUsd: number;
-}) {
-  return (
-    <Card title="누적 사용량">
-      <div className="font-korean text-sm text-text-primary">
-        토큰 <span className="font-mono">{tokens.toLocaleString()}</span>
-      </div>
-      <div className="font-korean text-sm text-text-primary">
-        비용 <span className="font-mono">${costUsd.toFixed(4)}</span>
-      </div>
-    </Card>
-  );
-}
-
 export function NowPlayingPanel({ run, personasData }: NowPlayingProps) {
   const persona = run.currentAgent
     ? personasData.personas[run.currentAgent] ?? null
@@ -167,7 +154,6 @@ export function NowPlayingPanel({ run, personasData }: NowPlayingProps) {
       <AgentCard persona={persona} />
       <StageCard stage={stage} iter={run.currentIter} />
       <ElapsedCard ms={run.elapsedMs} />
-      <UsageCard tokens={run.totalTokens} costUsd={run.totalCostUSD} />
     </div>
   );
 }

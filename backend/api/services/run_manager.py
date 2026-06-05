@@ -200,7 +200,57 @@ class RunManager:
             except OSError as e:
                 logger.error("final_output.html 저장 실패: %s", e)
 
-        # metadata 기록 + Stage 4 결과 병합
+        # 비용/토큰 종속 저장 — 라이브 표시 X, run 결과물에만 박음.
+        # newsroom(9 에이전트) 은 cost_tracker 의 실측 토큰, judge_panel 은 호출당 토큰 고정 추정.
+        cost_summary: dict | None = None
+        try:
+            from backend.core.cost_tracker import get_cost_tracker
+            from backend.orchestrators.judge_panel import (
+                JUDGE_NAMES as _JUDGE_NAMES,
+                _TOKEN_ESTIMATE as _JUDGE_TOK_EST,
+            )
+
+            snap = get_cost_tracker().snapshot(run_id=session_id)
+            newsroom_prompt = int(snap.get("run_prompt_tokens", 0) or 0)
+            newsroom_completion = int(snap.get("run_completion_tokens", 0) or 0)
+            newsroom_total = newsroom_prompt + newsroom_completion
+            newsroom_cost = float(snap.get("run_cost_usd", 0.0) or 0.0)
+
+            stage_4_for_cost = result.get("stage_4") or {}
+            judge_calls = len(_JUDGE_NAMES)
+            judge_prompt = judge_calls * int(_JUDGE_TOK_EST["input"])
+            judge_completion = judge_calls * int(_JUDGE_TOK_EST["output"])
+            judge_total = judge_prompt + judge_completion
+            judge_cost = float(stage_4_for_cost.get("cost_usd_estimate") or 0.0)
+
+            cost_summary = {
+                "newsroom": {
+                    "prompt_tokens": newsroom_prompt,
+                    "completion_tokens": newsroom_completion,
+                    "total_tokens": newsroom_total,
+                    "cost_usd": round(newsroom_cost, 6),
+                    "is_actual_tokens": True,
+                },
+                "judge": {
+                    "prompt_tokens": judge_prompt,
+                    "completion_tokens": judge_completion,
+                    "total_tokens": judge_total,
+                    "cost_usd": round(judge_cost, 6),
+                    "is_actual_tokens": False,
+                    "note": (
+                        "judge_panel._TOKEN_ESTIMATE 호출당 input=2000/output=1000 "
+                        "고정 추정 — 실측 아님"
+                    ),
+                },
+                "total": {
+                    "total_tokens": newsroom_total + judge_total,
+                    "total_cost_usd": round(newsroom_cost + judge_cost, 6),
+                },
+            }
+        except Exception as e:  # noqa: BLE001 — cost 저장 실패가 run 종료를 막지 않게
+            logger.warning("cost_summary 조립 실패: %s", e)
+
+        # metadata 기록 + Stage 4 결과 병합 + 비용 종속 저장
         tracer.write_metadata(
             user_input={
                 "category": category,
@@ -210,6 +260,7 @@ class RunManager:
             status=result.get("status", "unknown"),
             notes="B3-S3-B API 트리거",
             judge_panel=result.get("stage_4"),
+            cost_summary=cost_summary,
         )
 
         # 완료 이벤트

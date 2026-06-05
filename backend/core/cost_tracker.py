@@ -41,7 +41,8 @@ class CostTracker:
     def __init__(self) -> None:
         self._lock = threading.RLock()
         self._daily: dict[str, float] = self._load_daily()
-        # run_id -> {"cost": float, "calls": int}
+        # run_id -> {"cost": float, "calls": int, "prompt_tokens": int, "completion_tokens": int}
+        # 토큰 필드는 2026-06-05 추가. 기존 cost/calls 누적 로직 무변경, 필드만 추가.
         self._runs: dict[str, dict[str, float]] = {}
 
     # ------------------------------------------------------------------
@@ -100,7 +101,10 @@ class CostTracker:
 
             # run 단위 한도
             if run_id is not None:
-                r = self._runs.get(run_id, {"cost": 0.0, "calls": 0})
+                r = self._runs.get(
+                    run_id,
+                    {"cost": 0.0, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0},
+                )
                 if s.max_llm_calls_per_run > 0 and r["calls"] >= s.max_llm_calls_per_run:
                     raise LLMBudgetExceeded(
                         f"run({run_id}) 호출 수 초과: {int(r['calls'])} ≥ "
@@ -115,8 +119,22 @@ class CostTracker:
     # ------------------------------------------------------------------
     # 비용 기록
     # ------------------------------------------------------------------
-    def record(self, cost_usd: float, *, run_id: str | None = None) -> None:
-        """호출 직후 비용 기록 (daily 파일 즉시 저장)."""
+    def record(
+        self,
+        cost_usd: float,
+        *,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        run_id: str | None = None,
+    ) -> None:
+        """호출 직후 비용·토큰 기록 (daily 파일 즉시 저장).
+
+        Args:
+            cost_usd: 추정 비용. 음수면 무시.
+            prompt_tokens: SDK 응답에서 실측된 prompt 토큰. 모르면 0 폴백.
+            completion_tokens: SDK 응답에서 실측된 completion 토큰. 모르면 0 폴백.
+            run_id: 있을 때만 run 단위 누적 (토큰 포함). 일일/월간 누적은 토큰 미반영.
+        """
         if cost_usd < 0:
             return
         with self._lock:
@@ -125,9 +143,16 @@ class CostTracker:
             self._save_daily()
 
             if run_id is not None:
-                r = self._runs.setdefault(run_id, {"cost": 0.0, "calls": 0})
+                r = self._runs.setdefault(
+                    run_id,
+                    {"cost": 0.0, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0},
+                )
                 r["cost"] += cost_usd
                 r["calls"] = int(r["calls"]) + 1
+                r["prompt_tokens"] = int(r.get("prompt_tokens", 0)) + max(0, int(prompt_tokens))
+                r["completion_tokens"] = int(r.get("completion_tokens", 0)) + max(
+                    0, int(completion_tokens)
+                )
 
     # ------------------------------------------------------------------
     # 조회 / 관리
@@ -147,10 +172,18 @@ class CostTracker:
                 "monthly_cost_usd": round(self._monthly_total(), 6),
             }
             if run_id is not None:
-                r = self._runs.get(run_id, {"cost": 0.0, "calls": 0})
+                r = self._runs.get(
+                    run_id,
+                    {"cost": 0.0, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0},
+                )
                 snap["run_id"] = run_id
                 snap["run_cost_usd"] = round(float(r["cost"]), 6)
                 snap["run_calls"] = int(r["calls"])
+                snap["run_prompt_tokens"] = int(r.get("prompt_tokens", 0))
+                snap["run_completion_tokens"] = int(r.get("completion_tokens", 0))
+                snap["run_total_tokens"] = (
+                    snap["run_prompt_tokens"] + snap["run_completion_tokens"]
+                )
             return snap
 
     def reset_run(self, run_id: str) -> None:

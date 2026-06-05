@@ -334,8 +334,13 @@ def call_llm(
                 provider, model_id, duration_ms, p_tok, c_tok, cost,
             )
 
-            # 성공한 호출만 누적
-            tracker.record(cost, run_id=run_id)
+            # 성공한 호출만 누적 (토큰 실측치 함께)
+            tracker.record(
+                cost,
+                prompt_tokens=p_tok,
+                completion_tokens=c_tok,
+                run_id=run_id,
+            )
 
             return LLMResponse(
                 content=content,

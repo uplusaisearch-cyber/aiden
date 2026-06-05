@@ -247,12 +247,24 @@ class TraceLogger:
         status: str,
         notes: str = "",
         judge_panel: dict | None = None,
+        cost_summary: dict | None = None,
     ) -> None:
         """metadata.json 작성. run 종료 시 호출.
 
         Args:
             judge_panel: Stage 4 결과 dict. 있으면 ``metadata["judge_panel"]`` 에 병합
                 (전체 evaluations 까지 포함하면 metadata 가 커지므로 요약만 저장).
+            cost_summary: run 종료 시점의 토큰·비용 breakdown.
+                run_manager 가 cost_tracker.snapshot + judge_panel.cost_usd_estimate 를
+                합성해 전달. 구조:
+                {
+                  "newsroom": {prompt_tokens, completion_tokens, total_tokens, cost_usd,
+                               is_actual_tokens: True},
+                  "judge": {prompt_tokens, completion_tokens, total_tokens, cost_usd,
+                            is_actual_tokens: False, note: "..."},
+                  "total": {total_tokens, total_cost_usd},
+                }
+                None 이면 metadata 에 cost 섹션 미저장 (과거 run 호환).
         """
         ended_at = datetime.now(timezone.utc)
         metadata: dict[str, Any] = {
@@ -279,6 +291,8 @@ class TraceLogger:
                 "cost_usd_estimate": judge_panel.get("cost_usd_estimate"),
                 "duration_ms": judge_panel.get("duration_ms"),
             }
+        if cost_summary:
+            metadata["cost"] = cost_summary
         try:
             self.metadata_path.write_text(
                 json.dumps(metadata, ensure_ascii=False, indent=2),

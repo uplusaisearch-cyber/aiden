@@ -43,3 +43,9 @@ class RunDetail(BaseModel):
     judge_panel: dict[str, Any] | None = None
     final_output_html_url: str | None = None
     metadata: dict[str, Any] = {}
+    # 2026-06-05: 토큰·비용 실측 종속 저장. metadata["cost"] 와 동일 dict 의 명시적 노출.
+    # 구조: { newsroom: {tokens, cost, is_actual_tokens: True},
+    #         judge: {tokens, cost, is_actual_tokens: False, note},
+    #         total: {total_tokens, total_cost_usd} }
+    # None = 과거 run (cost 섹션 미저장) 호환.
+    cost: dict[str, Any] | None = None
