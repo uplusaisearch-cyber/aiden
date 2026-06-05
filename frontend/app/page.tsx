@@ -10,7 +10,6 @@ import { CustomInputCard, type CustomInputPayload } from "@/components/main/cust
 import { RecentRuns } from "@/components/main/recent-runs";
 import { Separator } from "@/components/ui/separator";
 import { CATEGORY_PRESETS, type CategoryId } from "@/lib/constants";
-import { MOCK_RECENT_RUNS } from "@/lib/mock-data";
 import type { MockRecentRun } from "@/types/run";
 import {
   fetchOutputs,
@@ -37,10 +36,13 @@ export default function HomePage() {
   const [selected, setSelected] = useState<CategoryId | null>(null);
   const [customExpanded, setCustomExpanded] = useState(false);
 
-  // 데이터 소스: outputs.db (영속). API 실패 또는 빈 DB 시 mock fallback.
+  // 데이터 소스: outputs.db (영속). MOCK fallback 없음 — 빈 DB 는 빈 상태로 표시.
+  // placeholderData = (prev) => prev 로 재요청 중 이전 데이터 유지 → 새로고침 외 깜빡임 0.
+  // 첫 진입 (prev=undefined) 은 isLoading 으로 스켈레톤 노출, 데이터 도착 시 카드로 전환.
   const recentRunsQuery = useQuery({
     queryKey: ["outputs", "main-cards"],
     queryFn: () => fetchOutputs(6),
+    placeholderData: (prev) => prev,
   });
 
   const generateMutation = useMutation({
@@ -66,10 +68,8 @@ export default function HomePage() {
     generateMutation.mutate({ category: selected as ApiCategoryId });
   };
 
-  // API 성공 + 데이터 있음 → outputs.db. 빈 DB 또는 API 실패 → mock fallback.
-  const dbRuns: MockRecentRun[] =
+  const runsForUI: MockRecentRun[] =
     recentRunsQuery.data?.outputs?.map(outputToMock) ?? [];
-  const runsForUI: MockRecentRun[] = dbRuns.length > 0 ? dbRuns : MOCK_RECENT_RUNS;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 pb-16 sm:px-6">
@@ -139,12 +139,16 @@ export default function HomePage() {
       <Separator className="my-10 bg-border-subtle" />
 
       <section aria-labelledby="recent-heading">
-        <RecentRuns runs={runsForUI} />
-        {recentRunsQuery.isError && (
-          <p className="mt-3 font-korean text-xs text-text-muted">
-            (API 미응답 — mock 데이터 표시 중)
-          </p>
-        )}
+        <RecentRuns
+          runs={runsForUI}
+          isLoading={recentRunsQuery.isLoading}
+          isError={recentRunsQuery.isError}
+          errorMessage={
+            recentRunsQuery.error instanceof Error
+              ? recentRunsQuery.error.message
+              : undefined
+          }
+        />
       </section>
     </main>
   );
