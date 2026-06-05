@@ -248,6 +248,7 @@ class TraceLogger:
         notes: str = "",
         judge_panel: dict | None = None,
         cost_summary: dict | None = None,
+        planning_selection: dict | None = None,
     ) -> None:
         """metadata.json 작성. run 종료 시 호출.
 
@@ -293,6 +294,11 @@ class TraceLogger:
             }
         if cost_summary:
             metadata["cost"] = cost_summary
+        if planning_selection:
+            # B4-S2 C2: angle/segment 회전 결과 (selector Selection dict 전체).
+            # angle_directive / segment_persona 포함 — C3 에서 Strategy Planner
+            # 프롬프트 주입 시 그대로 사용. RunDetail 은 user-facing 4 필드만 노출.
+            metadata["planning_selection"] = planning_selection
         try:
             self.metadata_path.write_text(
                 json.dumps(metadata, ensure_ascii=False, indent=2),

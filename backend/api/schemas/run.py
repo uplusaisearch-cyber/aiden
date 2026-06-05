@@ -49,3 +49,11 @@ class RunDetail(BaseModel):
     #         total: {total_tokens, total_cost_usd} }
     # None = 과거 run (cost 섹션 미저장) 호환.
     cost: dict[str, Any] | None = None
+    # B4-S2 C2: angle round-robin + segment rotate 결과.
+    # 출처는 metadata["planning_selection"] 의 user-facing 4필드.
+    # angle_directive / segment_persona 는 노출하지 않음 (LLM 주입용 — C3 에서 사용).
+    # None = 과거 run (planning_selection 미저장) 또는 selector 실패 호환.
+    angle: str | None = None
+    angle_label: str | None = None
+    audience_segment: str | None = None
+    segment_label: str | None = None

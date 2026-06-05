@@ -75,6 +75,14 @@ def get_run_detail(session_id: str) -> RunDetail:
         raw["metadata"].get("cost") if isinstance(raw.get("metadata"), dict) else None
     )
 
+    # B4-S2 C2: metadata["planning_selection"] 의 user-facing 4필드만 노출.
+    planning = (
+        raw["metadata"].get("planning_selection")
+        if isinstance(raw.get("metadata"), dict)
+        else None
+    )
+    planning = planning if isinstance(planning, dict) else {}
+
     return RunDetail(
         session_id=raw["session_id"],
         category=raw["category"],
@@ -90,6 +98,10 @@ def get_run_detail(session_id: str) -> RunDetail:
         ),
         metadata=raw["metadata"],
         cost=cost_section,
+        angle=planning.get("angle"),
+        angle_label=planning.get("angle_label"),
+        audience_segment=planning.get("audience_segment"),
+        segment_label=planning.get("segment_label"),
     )
 
 

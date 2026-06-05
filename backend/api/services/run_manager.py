@@ -19,6 +19,7 @@ from typing import Any
 from uuid import uuid4
 
 from backend.agents.concrete_agents import build_all_agents
+from backend.api.services.planning_selector import PlanningSelector, Selection
 from backend.api.services.sse_broker import SSEBroker
 from backend.orchestrators.full_pipeline import FullPipeline
 from backend.orchestrators.trace_logger import TraceLogger
@@ -183,22 +184,36 @@ class RunManager:
         skip_judge = bool(options.get("skip_judge"))
         started_at = datetime.now(timezone.utc)
 
+        # B4-S2 C2: angle round-robin + segment rotate 조합 확정.
+        # selector 실패는 비파괴적 폴백 (run 자체는 진행, planning 필드만 누락).
+        selection: Selection | None = None
+        try:
+            selection = PlanningSelector.instance().select(category)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("PlanningSelector 실패 — planning 필드 없이 진행: %s", e)
+
+        # pipeline_start payload — 기존 필드 유지, planning 4필드 비파괴적 추가.
+        start_payload: dict[str, Any] = {
+            "session_id": session_id,
+            "category": category,
+            "custom_topic": custom_topic,
+            "options": options,
+            "started_at": started_at.isoformat(),
+        }
+        if selection is not None:
+            start_payload["angle"] = selection["angle"]
+            start_payload["angle_label"] = selection["angle_label"]
+            start_payload["audience_segment"] = selection["audience_segment"]
+            start_payload["segment_label"] = selection["segment_label"]
+
         # 즉시 시작 알림 (SSE 첫 이벤트)
-        await self._sse_broker.publish(
-            session_id,
-            "pipeline_start",
-            {
-                "session_id": session_id,
-                "category": category,
-                "custom_topic": custom_topic,
-                "options": options,
-                "started_at": started_at.isoformat(),
-            },
-        )
+        await self._sse_broker.publish(session_id, "pipeline_start", start_payload)
 
         try:
             await asyncio.wait_for(
-                self._run_pipeline(session_id, category, custom_topic, skip_judge, main_loop),
+                self._run_pipeline(
+                    session_id, category, custom_topic, skip_judge, main_loop, selection,
+                ),
                 timeout=PIPELINE_TIMEOUT_SEC,
             )
             # _run_pipeline 안에서 pipeline_complete 발행됨
@@ -224,6 +239,7 @@ class RunManager:
         custom_topic: str | None,
         skip_judge: bool,
         main_loop: asyncio.AbstractEventLoop,
+        selection: Selection | None = None,
     ) -> None:
         # tracer + agents + judge_panel 준비
         tracer = TraceLogger.new_run(
@@ -322,6 +338,8 @@ class RunManager:
             logger.warning("cost_summary 조립 실패: %s", e)
 
         # metadata 기록 + Stage 4 결과 병합 + 비용 종속 저장
+        # B4-S2 C2: planning_selection (angle/segment 조합) 도 metadata 에 영속.
+        # C3 에서 Strategy Planner 프롬프트 주입 시 본 dict 의 directive/persona 활용.
         tracer.write_metadata(
             user_input={
                 "category": category,
@@ -332,6 +350,7 @@ class RunManager:
             notes="B3-S3-B API 트리거",
             judge_panel=result.get("stage_4"),
             cost_summary=cost_summary,
+            planning_selection=dict(selection) if selection is not None else None,
         )
 
         # outputs.db 영속 적재 — 종료된 run 결과만, **정상 종료 + final_html 있을 때만**.
