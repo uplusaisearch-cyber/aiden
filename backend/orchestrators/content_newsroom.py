@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import difflib
 import logging
 from typing import Callable
 
@@ -170,6 +171,9 @@ class ContentNewsroom(BaseNewsroom):
             # ---- 종료 조건 ----
             if editor_output["decision"] == "approved":
                 logger.info(f"Content Newsroom approved at iter {iteration}")
+                # B4-S2: Editor self-edit 정합성 검증. action="직접 수정함" 항목이 있는데
+                # final_content 가 writer 원본과 거의 동일하면 known_weaknesses 에 경고 추가.
+                self._verify_editor_self_edits(editor_output, writer_output)
                 return editor_output
 
             if iteration == MAX_ITERATIONS:
@@ -275,6 +279,60 @@ class ContentNewsroom(BaseNewsroom):
             "_orchestrator_forced": True,
             "_force_reason": fail_reason,
         }
+
+    def _verify_editor_self_edits(
+        self,
+        editor_output: dict,
+        writer_output: dict,
+    ) -> None:
+        """Editor 가 ``accepted_critiques[].action == "직접 수정함"`` 으로 선언한
+        항목이 있는데 ``final_content.sections`` 가 writer 원본과 거의 동일하면
+        ``known_weaknesses`` 에 경고를 추가한다 (in-place).
+
+        LLM self-policed 결함 보정. iter 3 가 아닌 정상 approved 분기에서도
+        Editor 가 "수정함" 마킹은 하고 실제 수정 안 한 케이스를 외부에서 잡는다.
+        """
+        final_content = editor_output.get("final_content")
+        if not isinstance(final_content, dict):
+            return
+
+        accepted = editor_output.get("accepted_critiques") or []
+        direct_edits = [
+            a for a in accepted
+            if isinstance(a, dict) and "직접 수정" in str(a.get("action") or "")
+        ]
+        if not direct_edits:
+            return
+
+        def _sections_text(d: dict) -> str:
+            sections = d.get("sections") or []
+            parts: list[str] = []
+            for s in sections:
+                if isinstance(s, dict):
+                    parts.append(str(s.get("body") or s.get("content") or ""))
+            return "\n".join(parts)
+
+        before = _sections_text(writer_output)
+        after = _sections_text(final_content)
+        if not before or not after:
+            return
+
+        ratio = difflib.SequenceMatcher(None, before, after).ratio()
+        # 0.99 임계치 — 거의 byte-identical. 정상 편집이면 0.7~0.9 대로 떨어짐.
+        if ratio >= 0.99:
+            warn = (
+                f"Editor 가 '직접 수정함' {len(direct_edits)}건을 선언했으나 "
+                f"본문 변경 미검출 (sections 유사도 {ratio:.3f})"
+            )
+            known = list(final_content.get("known_weaknesses") or [])
+            known.append(warn)
+            final_content["known_weaknesses"] = known
+            editor_output["_self_edit_verification"] = {
+                "direct_edits_claimed": len(direct_edits),
+                "sections_similarity": round(ratio, 3),
+                "warning_added": True,
+            }
+            logger.warning("Editor self-edit 의심: %s", warn)
 
     def _coerce_approved_at_iter3(
         self,
