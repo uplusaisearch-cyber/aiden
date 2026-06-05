@@ -11,8 +11,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -21,6 +23,7 @@ from backend.api.services.sse_broker import SSEBroker
 from backend.llm.gemini_client import GeminiClient
 from backend.orchestrators.full_pipeline import FullPipeline
 from backend.orchestrators.trace_logger import TraceLogger
+from backend.storage.outputs_store import upsert_output
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +60,74 @@ def _apply_standalone_html_wrapper(category: str, final_html: str) -> str:
 def make_session_id() -> str:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
     return f"{ts}_{uuid4().hex[:8]}"
+
+
+def _extract_topic_title(run_dir: Path, fallback: str | None) -> str | None:
+    """Strategy Planner 출력의 final_topic.title 우선, 없으면 fallback."""
+    planner_path = run_dir / "agents" / "03_strategy_planner.json"
+    if planner_path.exists():
+        try:
+            data = json.loads(planner_path.read_text(encoding="utf-8"))
+            ft = ((data.get("output") or {}).get("final_topic") or {})
+            title = ft.get("title")
+            if title:
+                return str(title)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return fallback
+
+
+def _persist_output_record(
+    *,
+    session_id: str,
+    category: str,
+    custom_topic: str | None,
+    target_category_label: str,
+    result: dict[str, Any],
+    cost_summary: dict | None,
+    wrapped_final_html: str,
+    tracer_run_dir: Path,
+    tracer_started_at_iso: str,
+) -> None:
+    """run 결과 → outputs.db 적재용 record 조립 후 upsert.
+
+    호출 조건은 호출자가 보장(정상 종료 + final_html). 본 함수 내부에서는 dict 조립만.
+    upsert_output 자체가 예외를 삼키지만, 조립 단계 예외는 호출자의 try/except 가 catch.
+    """
+    title_fallback = custom_topic if category == "custom" else target_category_label
+    topic_title = _extract_topic_title(tracer_run_dir, title_fallback)
+
+    stage_4 = result.get("stage_4") or {}
+    aggregate = stage_4.get("aggregate") or {}
+    weighted_score = aggregate.get("weighted_total")
+    scores = aggregate.get("mean_scores")
+
+    total_tokens: int | None = None
+    total_cost: float | None = None
+    cost_is_estimated: bool | None = None
+    if cost_summary:
+        total = cost_summary.get("total") or {}
+        total_tokens = total.get("total_tokens")
+        total_cost = total.get("total_cost_usd")
+        judge_part = cost_summary.get("judge") or {}
+        # judge 비용이 추정이면 전체 합도 추정 포함으로 표기.
+        cost_is_estimated = bool(
+            judge_part and judge_part.get("is_actual_tokens") is False
+        )
+
+    record = {
+        "run_id": session_id,
+        "topic": topic_title,
+        "category": category,
+        "created_at": tracer_started_at_iso,
+        "weighted_score": weighted_score,
+        "scores_json": scores,
+        "total_tokens": total_tokens,
+        "total_cost_usd": total_cost,
+        "cost_is_estimated": cost_is_estimated,
+        "final_html": wrapped_final_html,
+    }
+    upsert_output(record)
 
 
 class RunManager:
@@ -189,13 +260,14 @@ class RunManager:
         # final_output.html 저장 (Judge Panel 평가·iframe 미리보기에 필수)
         # CLI scripts/run_full_pipeline.py 과 결과 동일해야 함 (수동 diff 로 검증).
         final_html = result.get("final_html")
+        wrapped_final_html: str | None = None
         if final_html:
+            wrapped_final_html = _apply_standalone_html_wrapper(
+                target_category_label, final_html
+            )
             try:
                 final_path = tracer.run_dir / "final_output.html"
-                final_path.write_text(
-                    _apply_standalone_html_wrapper(target_category_label, final_html),
-                    encoding="utf-8",
-                )
+                final_path.write_text(wrapped_final_html, encoding="utf-8")
                 logger.info("final_output.html 저장: %s", final_path)
             except OSError as e:
                 logger.error("final_output.html 저장 실패: %s", e)
@@ -262,6 +334,26 @@ class RunManager:
             judge_panel=result.get("stage_4"),
             cost_summary=cost_summary,
         )
+
+        # outputs.db 영속 적재 — 종료된 run 결과만, **정상 종료 + final_html 있을 때만**.
+        # 실패 run / timeout / final_html 부재 케이스는 적재 skip(빈 HTML 레코드 방지).
+        # 적재 실패가 SSE/응답을 깨지 않게 try/except + log 격리.
+        run_status = result.get("status", "unknown")
+        if run_status == "completed" and wrapped_final_html:
+            try:
+                _persist_output_record(
+                    session_id=session_id,
+                    category=category,
+                    custom_topic=custom_topic,
+                    target_category_label=target_category_label,
+                    result=result,
+                    cost_summary=cost_summary,
+                    wrapped_final_html=wrapped_final_html,
+                    tracer_run_dir=tracer.run_dir,
+                    tracer_started_at_iso=tracer.started_at.isoformat(),
+                )
+            except Exception as e:  # noqa: BLE001 — 영속 실패가 run 응답을 깨지 않게
+                logger.error("outputs.db 적재 호출 실패 sid=%s: %s", session_id, e)
 
         # 완료 이벤트
         judge_summary = None

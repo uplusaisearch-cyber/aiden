@@ -31,6 +31,7 @@ from backend.api.routers import (  # noqa: E402
     admin_registry,
     generate,
     judges,
+    outputs,
     personas,
     prompts,
     runs,
@@ -38,6 +39,7 @@ from backend.api.routers import (  # noqa: E402
 )
 from backend.api.services.run_manager import RunManager  # noqa: E402
 from backend.api.services.sse_broker import SSEBroker  # noqa: E402
+from backend.storage.outputs_store import init_db as init_outputs_db  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,8 @@ def _cors_origins() -> list[str]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """앱 시작/종료 lifecycle. SSEBroker + RunManager 싱글톤 초기화."""
+    # outputs.db 스키마 1회 보장 (idempotent, 실패해도 기동 차단 안 함).
+    init_outputs_db()
     broker = SSEBroker()
     run_manager = RunManager(sse_broker=broker)
     app.state.sse_broker = broker
@@ -88,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(prompts.router)
     app.include_router(judges.router)
     app.include_router(personas.router)
+    app.include_router(outputs.router)
     # B3-S3-E admin
     app.include_router(admin_keys.router)
     app.include_router(admin_registry.router)
