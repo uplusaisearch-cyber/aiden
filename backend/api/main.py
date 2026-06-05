@@ -26,7 +26,16 @@ from fastapi import Depends, FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from backend.api.deps import get_run_manager, get_sse_broker, get_uptime_sec  # noqa: E402
-from backend.api.routers import generate, judges, personas, prompts, runs, stream  # noqa: E402
+from backend.api.routers import (  # noqa: E402
+    admin_keys,
+    admin_registry,
+    generate,
+    judges,
+    personas,
+    prompts,
+    runs,
+    stream,
+)
 from backend.api.services.run_manager import RunManager  # noqa: E402
 from backend.api.services.sse_broker import SSEBroker  # noqa: E402
 
@@ -79,6 +88,9 @@ def create_app() -> FastAPI:
     app.include_router(prompts.router)
     app.include_router(judges.router)
     app.include_router(personas.router)
+    # B3-S3-E admin
+    app.include_router(admin_keys.router)
+    app.include_router(admin_registry.router)
 
     @app.get("/api/health", tags=["health"])
     async def health(

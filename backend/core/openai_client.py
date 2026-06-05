@@ -11,6 +11,7 @@ import json
 import logging
 from typing import Any
 
+from backend.core.runtime_keys import get_provider_key
 from backend.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -40,13 +41,14 @@ async def call_openai_judge(
     """
     from openai import AsyncOpenAI
 
-    settings = get_settings()
-    if not settings.openai_api_key:
+    # B3-S3-E A2: 런타임 override > env. 초기화 인자(JSON mode) 는 변경 금지.
+    api_key = get_provider_key("openai") or get_settings().openai_api_key
+    if not api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY 가 설정되지 않았습니다. .env 를 확인하세요."
+            "OPENAI_API_KEY 가 설정되지 않았습니다. .env 또는 어드민 키 페이지를 확인하세요."
         )
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key, timeout=timeout_sec)
+    client = AsyncOpenAI(api_key=api_key, timeout=timeout_sec)
 
     response = await client.chat.completions.create(
         model=model_id,

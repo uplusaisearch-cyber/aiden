@@ -303,10 +303,12 @@ async def _call_gemini_judge_default(
     from google import genai
     from google.genai import types
 
+    from backend.core.runtime_keys import get_provider_key
     from backend.core.settings import get_settings
 
-    settings = get_settings()
-    client = genai.Client(api_key=settings.gemini_api_key)
+    # B3-S3-E A2: 런타임 override > env. 클라이언트 초기화 인자(json mode) 변경 금지.
+    api_key = get_provider_key("gemini") or get_settings().gemini_api_key
+    client = genai.Client(api_key=api_key)
 
     config = types.GenerateContentConfig(
         system_instruction=system_prompt or None,

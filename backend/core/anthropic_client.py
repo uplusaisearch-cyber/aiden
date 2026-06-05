@@ -11,6 +11,7 @@ import json
 import logging
 from typing import Any
 
+from backend.core.runtime_keys import get_provider_key
 from backend.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -59,13 +60,14 @@ async def call_anthropic_judge(
     """
     from anthropic import AsyncAnthropic
 
-    settings = get_settings()
-    if not settings.anthropic_api_key:
+    # B3-S3-E A2: 런타임 override > env. JSON 강제 prompt 후처리는 변경 금지.
+    api_key = get_provider_key("anthropic") or get_settings().anthropic_api_key
+    if not api_key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY 가 설정되지 않았습니다. .env 를 확인하세요."
+            "ANTHROPIC_API_KEY 가 설정되지 않았습니다. .env 또는 어드민 키 페이지를 확인하세요."
         )
 
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key, timeout=timeout_sec)
+    client = AsyncAnthropic(api_key=api_key, timeout=timeout_sec)
 
     response = await client.messages.create(
         model=model_id,

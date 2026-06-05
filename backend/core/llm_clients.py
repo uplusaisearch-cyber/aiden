@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from backend.core.cost_tracker import LLMBudgetExceeded, get_cost_tracker
+from backend.core.runtime_keys import get_provider_key
 from backend.core.settings import get_settings, load_agents_config
 
 logger = logging.getLogger(__name__)
@@ -120,8 +121,9 @@ def _call_gemini(
     from google import genai
     from google.genai import types
 
-    settings = get_settings()
-    client = genai.Client(api_key=settings.gemini_api_key)
+    # B3-S3-E A2: 런타임 override > env. 초기화 인자(grounding/json mode)는 건드리지 않음.
+    api_key = get_provider_key("gemini") or get_settings().gemini_api_key
+    client = genai.Client(api_key=api_key)
 
     tools = []
     if grounding:
@@ -155,8 +157,8 @@ def _call_openai(
     """OpenAI 호출."""
     from openai import OpenAI
 
-    settings = get_settings()
-    client = OpenAI(api_key=settings.openai_api_key)
+    api_key = get_provider_key("openai") or get_settings().openai_api_key
+    client = OpenAI(api_key=api_key)
 
     messages = []
     if system_instruction:
@@ -190,8 +192,8 @@ def _call_anthropic(
     """
     from anthropic import Anthropic
 
-    settings = get_settings()
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    api_key = get_provider_key("anthropic") or get_settings().anthropic_api_key
+    client = Anthropic(api_key=api_key)
 
     json_hint = "\n\n반드시 유효한 JSON 객체 하나만 출력하세요. 다른 설명 텍스트는 포함하지 마세요."
     system = (system_instruction or "") + json_hint
