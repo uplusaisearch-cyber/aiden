@@ -170,9 +170,12 @@ def _convert_devils(raw: dict) -> list[dict]:
     scores = out.get("scores") or {}
     avg = sum(scores.values()) / len(scores) if scores else 0.0
     passed = bool(out.get("pass_threshold"))
-    top_critique = issues[0].get("issue", "") if issues else ""
+    # 실제 스키마 키는 `problem` (06_devils_advocate.md). 구버전·테스트 호환 위해 `issue` fallback.
+    first = issues[0] if issues else {}
+    top_critique = first.get("problem") or first.get("issue") or ""
     msg = _base("devils", raw, stage=2)
-    msg["headline"] = f"{len(issues)}건 까겠습니다. 평균 {avg:.1f}"
+    # 비판 톤은 personas.yaml 의 prefix/suffix_options 가 담당. 여기는 중립 통계만.
+    msg["headline"] = f"{len(issues)}건 비판. 평균 {avg:.1f}"
     msg["body_text"] = f"1번: {top_critique[:80]}" if top_critique else ""
     msg["highlights"] = [
         {"label": "비판", "value": f"{len(issues)}건"},
@@ -211,7 +214,15 @@ def _convert_architect(raw: dict) -> list[dict]:
     interactive = (out.get("interactive") or {}).get("template", "none")
     msg = _base("architect", raw, stage=3)
     msg["headline"] = f"타입 {selected_type} + 인터랙티브 '{interactive}'"
-    msg["body_text"] = out.get("rationale", "")[:200]
+    # 실제 스키마 키 (08_format_architect.md): format_analysis 우선, type_reasoning fallback.
+    # 구버전 `rationale` 도 최종 fallback 으로 받아 하위호환.
+    body_source = (
+        out.get("format_analysis")
+        or out.get("type_reasoning")
+        or out.get("rationale")
+        or ""
+    )
+    msg["body_text"] = body_source[:200]
     msg["highlights"] = [
         {"label": "type", "value": selected_type},
         {"label": "interactive", "value": interactive},

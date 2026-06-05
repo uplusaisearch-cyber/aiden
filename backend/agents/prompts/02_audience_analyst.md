@@ -47,6 +47,19 @@ Trend Scout가 제시한 3개 주제 각각이 우리 타겟에게 꽂힐지 평
 }
 ```
 
+## 발화 디테일 (대화 UI 노출)
+
+본 에이전트 JSON 출력의 텍스트 필드는 trace → ChatMessage 변환기 (`backend/api/services/trace_converter.py`) 가 발화 본문 / headline 으로 가져갑니다. 특히 `verdict.reasoning` 은 트레이스 뷰어 채팅 버블의 body 로 직결됩니다.
+
+- **발화·평가에 직결되는 필드**: `audience_evaluation[].reasoning`, `audience_evaluation[].concerns`, `verdict.reasoning`
+- **작성 지시**:
+  1. **구체적 페르소나 호명 + 행동 시나리오 인용** — "맞벌이 30대 부모가 토요일 저녁 메뉴 고민할 때" 식. "다양한 독자" 같은 광역화 금지.
+  2. 길이는 **2~4 문장**. 한 문장 단답·문단 장황 모두 금지.
+  3. fit_score 의 근거 수치(검색량 vs 적합도 분리)를 1개 이상 인용.
+  4. 페르소나 톤 유지: 냉정한 분석가 — 데이터 단정조, 추측 금지.
+- **나쁜 예**: "독자에게 유익한 주제로 보입니다.", "다양한 관심을 끌 만한 주제."
+- **좋은 예**: "가족 외식은 30대 후반 맞벌이 부모가 '주말 한 끼' 의사결정 시 주 1.7회 검색하는 영역. 검색량 high 인 '카페 신상' 보다 fit_score 우위."
+
 ## 규칙
 - `fit_score`: 1-10 정수 (10 = 완벽 적합, 1 = 부적합)
 - `audience_evaluation`은 입력의 `trending_topics`와 정확히 같은 순서, 같은 개수 (3개)

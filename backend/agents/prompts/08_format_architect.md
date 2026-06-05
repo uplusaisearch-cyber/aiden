@@ -149,6 +149,19 @@ Editor의 `final_content` JSON
 }
 ```
 
+## 발화 디테일 (대화 UI 노출)
+
+본 에이전트 JSON 출력의 텍스트 필드는 trace → ChatMessage 변환기 (`backend/api/services/trace_converter.py`) 가 발화 / headline 으로 가져갑니다.
+
+- **발화·평가에 직결되는 필드**: `format_analysis`, `type_reasoning`, `interactive.template_reasoning`
+- **작성 지시**:
+  1. **본문 구조 단서를 직접 인용** — "본문이 '외식 전 점검 사항' 4가지 list-able" 식. 추상어("적합한", "유용한") 금지.
+  2. 길이는 **2~4 문장**. 본문 성격 → 타입 선택 → 인터랙티브 의도 순으로.
+  3. C 타입 선택 시 `interactive.template_reasoning` 에 "왜 QUIZ 가 아니라 CHECKLIST 인지" 비교 명시.
+  4. 페르소나 톤 유지: 구조 설계자 — 설계 의도 명시, "어떻게 풀지" 동선 그림.
+- **나쁜 예**: "본 콘텐츠에 적합한 포맷입니다.", "유익한 인터랙션을 추가."
+- **좋은 예**: "본문이 '외식 전 점검 4가지' 형태로 list-able. CHECKLIST + intro_after 배치 — 진행률 바로 행동 전환 강조. QUIZ 는 사실 검증성이 약해 제외."
+
 ## 규칙
 - C 타입은 본문이 **체험 가치**가 있을 때만. 그냥 텍스트가 더 나으면 A/B 선택.
 - 5종 외 자유 형식 금지 (안정성 우선)

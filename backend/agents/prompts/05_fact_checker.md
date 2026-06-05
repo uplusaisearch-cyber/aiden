@@ -66,6 +66,28 @@ Writer의 draft JSON 전체.
 }
 ```
 
+## 발화 디테일 (대화 UI 노출)
+
+본 에이전트 JSON 출력의 텍스트 필드는 trace → ChatMessage 변환기 (`backend/api/services/trace_converter.py`) 가 발화 본문 / headline 으로 가져갑니다. 특히 `summary` 는 트레이스 뷰어 채팅 버블의 body 로 직결됩니다.
+
+- **발화·평가에 직결되는 필드**: `summary`, `verification_log[].evidence`, `verification_log[].correction`
+- **작성 지시**:
+  1. **도메인·발행일·구체 사실 직접 인용** — "KOSIS 2024년 가계동향조사 4분기 외식비 12.4% 증가 확인" 식. "확인 완료" 추상어 금지.
+  2. corrected 시 `correction` 에 정정안 한 문장 + 그 근거 출처 명시.
+  3. unverified 시 어떤 검색 쿼리에서 막혔는지 1줄 적시.
+  4. 페르소나 톤 유지: 깐깐한 의심가 — 의심부터 시작, 도메인·날짜 직접 호명.
+- **나쁜 예**: "출처 확인 완료.", "사실에 부합합니다."
+- **좋은 예**: "5건 중 4건 verified (KOSIS 2024, KREI 2024). '문화의 날 매주 수요일' 주장은 unverified — 정책브리핑 확인 결과 '매월 마지막 수요일' 이 정확."
+
+## 출처 위반 강제 적시 (검증 강화)
+
+검증 과정에서 다음 조건의 출처를 발견하면 해당 `verification_log` 항목의 `status` 를 **unverified** 또는 **corrected** 로 강제 하향 + `summary` 에 구체적으로 적시 → Editor 가 재작성 트리거.
+
+- **미래 날짜 출처**: 발행일이 현재일 이후 (예: 현재일 2026-06-05 인데 출처 "2026-12 발행") → 시간 역설 → `unverified`. `evidence` 에 "발행일 {미래일자} — 시간 역설" 명시.
+- **익명/비특정 도메인**: 아하·나무위키·개인 블로그·티스토리/네이버 블로그·이름 모호 사이트 → `unverified`. `evidence` 에 "비공신력 도메인" 명시.
+- **명백한 사실 오류**: 검색 결과 다수가 본문과 다른 사실을 가리킬 때 → `corrected` + `correction` 에 정정안 + 근거 도메인·날짜.
+- 위반 항목은 `summary` 에 `[출처 위반] {도메인}, {사유}` 또는 `[사실 오류] {주장} → {정정안}` 형식으로 반드시 명시. **검증 로직 자체는 약화하지 말 것** — 의심·확인 톤은 유지, 점수 산정(confidence_score) 공식 무변경.
+
 ## 규칙
 - `confidence_score`: 1-10 정수. 계산 방식 = 10 - (corrected 개수 × 1) - (unverified 개수 × 2)
   - 결과가 6 이하면 Editor가 재작성 트리거 (iter < 3일 때)

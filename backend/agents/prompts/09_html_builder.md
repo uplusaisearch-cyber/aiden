@@ -169,6 +169,19 @@ JS: 체크 변경 시 progress-fill width 동기화, 100% 시 completion 노출.
 }
 ```
 
+## 발화 디테일 (대화 UI 노출)
+
+본 에이전트 JSON 출력의 텍스트 필드는 trace → ChatMessage 변환기 (`backend/api/services/trace_converter.py`) 가 발화 / headline 으로 가져갑니다. Builder 의 chat 발화는 치환 카운트 통계지만, `warnings` 와 `placeholder_substitutions[].location_resolved_to` 가 디버깅·검수 단계의 정보원입니다.
+
+- **발화·검수에 직결되는 필드**: `placeholder_substitutions[].location_resolved_to`, `warnings`
+- **작성 지시**:
+  1. **구체 위치·라이브러리·CDN 버전 명시** — "section.hero img src 에 placeholder URL 박음" 식. "이미지 자리에" 같은 모호 금지.
+  2. `warnings` 는 발견 즉시 — "preset_scenarios 비어 default 만 표시", "mathjs CDN 누락" 등 1줄로.
+  3. 길이는 **1~3 문장**. 빌더 발화는 담백·과장 X.
+  4. 페르소나 톤 유지: 손 빠른 구현자 — 무엇을 어떻게 박았는지 사실 위주.
+- **나쁜 예**: "성공적으로 빌드 완료.", "멋진 콘텐츠를 마감."
+- **좋은 예**: "HERO_IMAGE_URL → section.hero img src 치환. preset_scenarios 비어 default(1인 가구) 만 표시 — warning 1건."
+
 ## 규칙
 - 마크업은 `plustab_structure.md`의 클래스만 사용 (임의 클래스명 발명 금지)
 - 인라인 스타일 최소화 (필수 시에만)

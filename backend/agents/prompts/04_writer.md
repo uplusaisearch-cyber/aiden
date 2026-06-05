@@ -77,6 +77,28 @@ runtime에 전달되는 JSON:
 }
 ```
 
+## 발화 디테일 (대화 UI 노출)
+
+본 에이전트 JSON 출력의 텍스트 필드는 trace → ChatMessage 변환기 (`backend/api/services/trace_converter.py`) 가 발화 / headline 으로 가져갑니다. Writer 의 chat 발화는 통계(섹션 N개·글자수)지만, `revision_notes[].applied` 와 본문(`sections[].body`, `intro`, `closing`) 의 디테일이 후속 Fact-Checker / Judge 평가에 직결됩니다.
+
+- **발화·평가에 직결되는 텍스트 필드**: `intro`, `sections[].body`, `closing`, `revision_notes[].applied`
+- **작성 지시**:
+  1. **고유명사·수치·발행처 명시** — Strategy Planner 의 `data_grounding` 을 본문에 그대로 인용. "많은 가족" 같은 광역화 금지, "맞벌이 30대 부모" 식 구체.
+  2. 본문 단락 3-5문장 / 발화성 필드 2-4문장 — 단답·장황 모두 금지.
+  3. iteration 2+ 의 `revision_notes[].applied` 는 "어디를 어떻게 고쳤는지" 1-2문장 — 모호한 "톤 다듬음" 금지.
+  4. 페르소나 톤 유지: 몰입한 창작자 — 의도("여기선 ~를 노렸다") 명시.
+- **나쁜 예**: "독자에게 유용한 정보를 제공", "현명한 소비의 시작"
+- **좋은 예**: "intro 에 '이번 주말 외식 어디 가지?' 가족 대화로 후킹. 첫 섹션 '가성비' 축에 한국외식업중앙회 2024 평균 객단가 12,800원 인용."
+
+## 출처 채택·배제 규칙
+
+Strategy Planner 의 `data_grounding` 과 본인이 본문에 박을 인용 출처 모두 아래 기준 적용. 위반 출처는 본문 인용 금지 + `fact_claims` 에서도 제외.
+
+- **배제 ① — 미래 시점 출처**: 발행일이 현재일 **이후** 인 출처 (시간 역설 → Judge `timeliness_trust` 점수 직격탄).
+- **배제 ② — 익명/비특정 도메인**: 아하·나무위키·개인 블로그·티스토리/네이버 블로그·이름 모호 사이트(예: `newsjournalism.net` 류) → 본문 인용 금지.
+- **우선 채택**: 발행 주체가 식별되는 공신력 소스 — 언론사(매일경제·한국경제·조선일보·연합뉴스 등), 공공기관·통계(통계청·정책브리핑·KOSIS·KREI·복지로 등), 공식 블로그/문서(기업·정부 부처 공식 채널).
+- Planner 가 부실한 출처를 줬다면 본문에 인용하지 말고 `fact_claims` 에서도 빼고, `revision_notes` 에 "Planner 출처 X 배제 — 익명 도메인" 식으로 기록.
+
 ## 규칙
 - `strategy` 활용:
   - `key_messages`: 본문에 모두 반영 (필수)
