@@ -13,6 +13,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/admin", label: "대시보드", emoji: "📊" },
   { href: "/admin/personas", label: "Persona Lab", emoji: "🎭" },
+  { href: "/admin/runs", label: "출력 히스토리", emoji: "🗂️" },
   { href: "/admin/registry", label: "발행 이력", emoji: "📚" },
   { href: "/admin/keys", label: "API 키", emoji: "🔑" },
   { href: "/admin/settings", label: "운영 옵션", emoji: "⚙️" },

@@ -163,6 +163,49 @@ export function fetchFinalHtmlMeta(runId: string): Promise<FinalHtmlMeta> {
 }
 
 // ---------------------------------------------------------------
+// Output 영속 히스토리 (SQLite, /api/outputs)
+// 트레이스/대화 미포함. 종료된 run 의 결과 레코드만.
+// ---------------------------------------------------------------
+
+export interface OutputSummary {
+  run_id: string;
+  topic: string | null;
+  category: string | null;
+  created_at: string | null;
+  weighted_score: number | null;
+  scores: Record<string, number> | null;
+  total_tokens: number | null;
+  total_cost_usd: number | null;
+  cost_is_estimated: boolean | null;
+}
+
+export interface OutputListResponse {
+  outputs: OutputSummary[];
+  total: number;
+}
+
+export interface OutputDetail extends OutputSummary {
+  final_html: string;
+}
+
+export async function fetchOutputs(
+  limit = 50,
+  offset = 0,
+): Promise<OutputListResponse> {
+  return _fetchJson<OutputListResponse>(
+    `${API_BASE}/api/outputs?limit=${limit}&offset=${offset}`,
+  );
+}
+
+export function fetchOutputDetail(runId: string): Promise<OutputDetail> {
+  return _fetchJson<OutputDetail>(`${API_BASE}/api/outputs/${runId}`);
+}
+
+export function outputDownloadUrl(runId: string): string {
+  return `${API_BASE}/api/outputs/${runId}/download`;
+}
+
+// ---------------------------------------------------------------
 // SSE 구독
 // ---------------------------------------------------------------
 export interface RunStreamHandlers {

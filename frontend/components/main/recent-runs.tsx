@@ -45,7 +45,7 @@ export function RecentRuns({ runs }: Props) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        {runs.slice(0, 5).map((run, idx) => {
+        {runs.slice(0, 6).map((run, idx) => {
           const sv = statusVariant(run.status);
           return (
             <motion.div
@@ -55,7 +55,7 @@ export function RecentRuns({ runs }: Props) {
               transition={{ delay: idx * 0.04 }}
             >
               <Link
-                href={`/run/${run.sessionId}`}
+                href={`/admin/runs?preview=${encodeURIComponent(run.sessionId)}`}
                 className="group block rounded-xl border border-border-subtle bg-bg-elevated p-4 transition hover:-translate-y-0.5 hover:border-border-strong"
               >
                 <div className="mb-2 flex items-center gap-2">

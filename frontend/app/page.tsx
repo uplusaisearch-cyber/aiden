@@ -13,25 +13,22 @@ import { CATEGORY_PRESETS, type CategoryId } from "@/lib/constants";
 import { MOCK_RECENT_RUNS } from "@/lib/mock-data";
 import type { MockRecentRun } from "@/types/run";
 import {
-  fetchRecentRuns,
+  fetchOutputs,
   startGenerate,
-  type RunSummary,
+  type OutputSummary,
   type CategoryId as ApiCategoryId,
 } from "@/lib/api";
 
-function toMockShape(run: RunSummary): MockRecentRun {
-  // B3-S2-E2E weighted_total 은 0~100. RecentRuns 컴포넌트 그대로 사용.
-  const category = (run.category ?? "custom") as MockRecentRun["category"];
+function outputToMock(o: OutputSummary): MockRecentRun {
+  // outputs.db 는 정상 종료된 run 만 저장 → status 는 항상 "completed".
+  const category = (o.category ?? "custom") as MockRecentRun["category"];
   return {
-    sessionId: run.session_id,
+    sessionId: o.run_id,
     category,
-    title: run.title ?? "(제목 없음)",
-    weightedTotal: run.judge_weighted_total ?? 0,
-    finishedAt: run.started_at ?? new Date().toISOString(),
-    status:
-      (run.status as MockRecentRun["status"]) === "running"
-        ? "running"
-        : (run.status as MockRecentRun["status"]) || "completed",
+    title: o.topic ?? "(제목 없음)",
+    weightedTotal: o.weighted_score ?? 0,
+    finishedAt: o.created_at ?? new Date().toISOString(),
+    status: "completed",
   };
 }
 
@@ -40,10 +37,10 @@ export default function HomePage() {
   const [selected, setSelected] = useState<CategoryId | null>(null);
   const [customExpanded, setCustomExpanded] = useState(false);
 
-  // API 가 죽으면 mock 으로 fallback
+  // 데이터 소스: outputs.db (영속). API 실패 또는 빈 DB 시 mock fallback.
   const recentRunsQuery = useQuery({
-    queryKey: ["recent-runs"],
-    queryFn: () => fetchRecentRuns(5),
+    queryKey: ["outputs", "main-cards"],
+    queryFn: () => fetchOutputs(6),
   });
 
   const generateMutation = useMutation({
@@ -69,10 +66,10 @@ export default function HomePage() {
     generateMutation.mutate({ category: selected as ApiCategoryId });
   };
 
-  // 데이터 소스: API 성공 시 그대로, 실패/로딩 중에는 mock 으로 fallback
-  const runsForUI: MockRecentRun[] = recentRunsQuery.data
-    ? recentRunsQuery.data.map(toMockShape)
-    : MOCK_RECENT_RUNS;
+  // API 성공 + 데이터 있음 → outputs.db. 빈 DB 또는 API 실패 → mock fallback.
+  const dbRuns: MockRecentRun[] =
+    recentRunsQuery.data?.outputs?.map(outputToMock) ?? [];
+  const runsForUI: MockRecentRun[] = dbRuns.length > 0 ? dbRuns : MOCK_RECENT_RUNS;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 pb-16 sm:px-6">
