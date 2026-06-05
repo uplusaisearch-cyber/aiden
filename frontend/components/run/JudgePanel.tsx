@@ -175,8 +175,12 @@ export function JudgePanel({ runId }: Props) {
   if (isLoading) return <JudgePanelSkeleton />;
   if (error || !data) {
     const message = error instanceof Error ? error.message : "unknown";
-    // 백엔드 detail "judge_panel.json 없음" — pipeline 진행 중이거나 Stage 4 미완료
-    if (message.includes("judge_panel.json")) {
+    // 두 가지 404 detail 모두 Pending UI 로 흡수:
+    //   "judge_panel.json 없음" — pipeline 진행 중이거나 Stage 4 미완료 (정상 흐름)
+    //   "session_id=... 없음"   — Railway 재배포로 runs/<sid>/ 폴더 통째 소실 케이스
+    //                              (Volume 미마운트 = ephemeral). 빨간 에러보다 Pending 이
+    //                              데모 안정성 우선이라 안전한 트레이드오프.
+    if (message.includes("judge_panel.json") || message.includes("session_id=")) {
       return <JudgePanelPending />;
     }
     return <JudgePanelError message={message} />;
