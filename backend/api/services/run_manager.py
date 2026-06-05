@@ -20,7 +20,6 @@ from uuid import uuid4
 
 from backend.agents.concrete_agents import build_all_agents
 from backend.api.services.sse_broker import SSEBroker
-from backend.llm.gemini_client import GeminiClient
 from backend.orchestrators.full_pipeline import FullPipeline
 from backend.orchestrators.trace_logger import TraceLogger
 from backend.storage.outputs_store import upsert_output
@@ -233,10 +232,10 @@ class RunManager:
             main_loop=main_loop,
             session_id=session_id,
         )
-        # 모델 체인은 GeminiClient default 또는 AIDEN_GEMINI_MODELS 환경변수 사용.
-        # 503 만성 시 자동 폴백 (gemini-2.5-flash → gemini-2.5-flash-lite).
-        client = GeminiClient()
-        agents = build_all_agents(client)
+        # 9 에이전트는 config/agents.yaml 의 ``agents.<key>.model`` 별칭으로
+        # 에이전트별 GeminiClient 를 받는다. 503/429 시 ``gemini-2.5-flash-lite`` 폴백 유지.
+        # env ``AIDEN_GEMINI_MODELS`` 가 설정되면 전 에이전트가 동일 chain 으로 강등 (디버그).
+        agents = build_all_agents()
 
         judge_panel = None
         if not skip_judge:

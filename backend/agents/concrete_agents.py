@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Callable
 
@@ -13,6 +14,40 @@ from backend.core.base_agent import PromptLoader
 from backend.llm.gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
+
+# 모든 에이전트에 부착되는 안전 폴백. 503/429/빈 응답 시 강등.
+_FALLBACK_MODEL = "gemini-2.5-flash-lite"
+
+
+def _build_client_for_alias(
+    alias: str,
+    model_aliases: dict[str, str],
+) -> GeminiClient:
+    """yaml ``models.<alias>`` → ``GeminiClient`` 인스턴스.
+
+    우선순위:
+        1) env ``AIDEN_GEMINI_MODELS`` (콤마 구분) — 디버그 override. 설정되면 모든
+           에이전트가 동일 chain 사용 (운영 일괄 강등용).
+        2) yaml ``models.<alias>`` 의 model_id + ``_FALLBACK_MODEL`` 폴백.
+
+    별칭 매핑이 없으면 ``gemini-2.5-flash`` 안전 폴백 + warning.
+    """
+    env_chain_raw = os.environ.get("AIDEN_GEMINI_MODELS", "").strip()
+    if env_chain_raw:
+        chain = [m.strip() for m in env_chain_raw.split(",") if m.strip()]
+        if chain:
+            return GeminiClient(models=chain)
+
+    primary = model_aliases.get(alias)
+    if not primary:
+        logger.warning(
+            "config/agents.yaml models.%s 매핑 없음 → gemini-2.5-flash 안전 폴백",
+            alias,
+        )
+        primary = "gemini-2.5-flash"
+
+    chain = [primary] if primary == _FALLBACK_MODEL else [primary, _FALLBACK_MODEL]
+    return GeminiClient(models=chain)
 
 
 def make_agent_callable(
@@ -83,98 +118,103 @@ def _scout_dynamic_vars() -> dict[str, str]:
     return {"PUBLISHED_TOPICS": render_published_topics_block()}
 
 
-def build_topic_newsroom_agents(llm_client: GeminiClient) -> dict[str, Callable[[dict], dict]]:
-    """Topic Newsroom 용 3개 에이전트 callable 생성."""
+# ---------------------------------------------------------------------
+# 9 에이전트 사양: short_key → (prompt_filename, yaml_agent_key, use_grounding, dynamic_vars_fn)
+# yaml_agent_key 는 config/agents.yaml 의 ``agents.<key>`` 매핑.
+# use_grounding 은 yaml 의 ``grounding`` 와 OR 결합 (yaml=true 면 무조건 ON).
+# ---------------------------------------------------------------------
+_AGENT_SPECS: dict[str, tuple[str, str, bool, Callable[[], dict[str, str]] | None]] = {
+    "scout":            ("01_trend_scout.md",        "trend_scout",       True,  _scout_dynamic_vars),
+    "analyst":          ("02_audience_analyst.md",   "audience_analyst",  False, None),
+    "planner":          ("03_strategy_planner.md",   "strategy_planner",  False, None),
+    "writer":           ("04_writer.md",             "writer",            False, None),
+    "fact_checker":     ("05_fact_checker.md",       "fact_checker",      True,  None),
+    "devils_advocate":  ("06_devils_advocate.md",    "devils_advocate",   False, None),
+    "editor":           ("07_editor_in_chief.md",    "editor_in_chief",   False, None),
+    "format_architect": ("08_format_architect.md",   "format_architect",  False, None),
+    "html_builder":     ("09_html_builder.md",       "html_builder",      False, None),
+}
+
+
+def _load_model_routing() -> tuple[dict[str, str], dict[str, dict]]:
+    """config/agents.yaml 의 ``models`` 별칭 + ``agents`` 매핑 로드."""
+    # 늦은 import — 테스트에서 yaml 미초기화 환경 회피.
+    from backend.core.settings import load_agents_config
+
+    cfg = load_agents_config()
+    return cfg.get("models", {}) or {}, cfg.get("agents", {}) or {}
+
+
+def _build_agents(
+    short_keys: tuple[str, ...],
+) -> dict[str, Callable[[dict], dict]]:
+    """yaml 매핑으로 에이전트별 GeminiClient 인스턴스 + callable 을 만든다.
+
+    9 에이전트가 더 이상 단일 client 를 공유하지 않는다 — 에이전트별로 별칭 ↔
+    실모델 ID 가 다를 수 있으며, ``config/agents.yaml`` 이 단일 출처가 된다.
+    """
+    model_aliases, agents_cfg = _load_model_routing()
     loader = PromptLoader()
-    return {
-        # scout 는 매 호출 시점에 PUBLISHED_TOPICS 를 새로 주입한다 (B3-S3-E §A3).
-        "scout": make_agent_callable(
-            "01_trend_scout.md",
-            llm_client,
-            use_grounding=True,
+    result: dict[str, Callable[[dict], dict]] = {}
+    for short_key in short_keys:
+        prompt_filename, yaml_key, default_grounding, dyn_fn = _AGENT_SPECS[short_key]
+        spec = agents_cfg.get(yaml_key, {})
+        alias = spec.get("model", "gemini_flash")
+        # use_grounding: yaml 명시 우선, 미명시면 spec default.
+        if "grounding" in spec:
+            use_grounding = bool(spec["grounding"])
+        else:
+            use_grounding = default_grounding
+        client = _build_client_for_alias(alias, model_aliases)
+        result[short_key] = make_agent_callable(
+            prompt_filename,
+            client,
+            use_grounding=use_grounding,
             prompt_loader=loader,
-            dynamic_vars_fn=_scout_dynamic_vars,
-        ),
-        "analyst": make_agent_callable(
-            "02_audience_analyst.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "planner": make_agent_callable(
-            "03_strategy_planner.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-    }
+            dynamic_vars_fn=dyn_fn,
+        )
+    return result
 
 
-def build_content_newsroom_agents(llm_client: GeminiClient) -> dict[str, Callable[[dict], dict]]:
+def build_topic_newsroom_agents(
+    llm_client: GeminiClient | None = None,
+) -> dict[str, Callable[[dict], dict]]:
+    """Topic Newsroom 용 3개 에이전트 callable 생성.
+
+    ``llm_client`` 는 호환을 위한 옵션 — 무시되며 yaml 매핑 기반 client 가 사용된다.
+    """
+    if llm_client is not None:
+        logger.debug("build_topic_newsroom_agents: llm_client 인자는 무시됨 (yaml 매핑 사용)")
+    return _build_agents(("scout", "analyst", "planner"))
+
+
+def build_content_newsroom_agents(
+    llm_client: GeminiClient | None = None,
+) -> dict[str, Callable[[dict], dict]]:
     """Content Newsroom 용 4개 에이전트 callable 생성."""
-    loader = PromptLoader()
-    return {
-        "writer": make_agent_callable(
-            "04_writer.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "fact_checker": make_agent_callable(
-            "05_fact_checker.md", llm_client, use_grounding=True, prompt_loader=loader
-        ),
-        "devils_advocate": make_agent_callable(
-            "06_devils_advocate.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "editor": make_agent_callable(
-            "07_editor_in_chief.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-    }
+    if llm_client is not None:
+        logger.debug("build_content_newsroom_agents: llm_client 인자는 무시됨 (yaml 매핑 사용)")
+    return _build_agents(("writer", "fact_checker", "devils_advocate", "editor"))
 
 
-def build_gameifier_agents(llm_client: GeminiClient) -> dict[str, Callable[[dict], dict]]:
+def build_gameifier_agents(
+    llm_client: GeminiClient | None = None,
+) -> dict[str, Callable[[dict], dict]]:
     """Game-ifier 용 2개 에이전트 callable 생성."""
-    loader = PromptLoader()
-    return {
-        "format_architect": make_agent_callable(
-            "08_format_architect.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "html_builder": make_agent_callable(
-            "09_html_builder.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-    }
+    if llm_client is not None:
+        logger.debug("build_gameifier_agents: llm_client 인자는 무시됨 (yaml 매핑 사용)")
+    return _build_agents(("format_architect", "html_builder"))
 
 
-def build_all_agents(llm_client: GeminiClient) -> dict[str, Callable[[dict], dict]]:
-    """9개 에이전트 전체 callable 생성. FullPipeline 입력용."""
-    loader = PromptLoader()
+def build_all_agents(
+    llm_client: GeminiClient | None = None,
+) -> dict[str, Callable[[dict], dict]]:
+    """9개 에이전트 전체 callable 생성. FullPipeline 입력용.
 
-    topic = {
-        "scout": make_agent_callable(
-            "01_trend_scout.md",
-            llm_client,
-            use_grounding=True,
-            prompt_loader=loader,
-            dynamic_vars_fn=_scout_dynamic_vars,
-        ),
-        "analyst": make_agent_callable(
-            "02_audience_analyst.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "planner": make_agent_callable(
-            "03_strategy_planner.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-    }
-    content = {
-        "writer": make_agent_callable(
-            "04_writer.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "fact_checker": make_agent_callable(
-            "05_fact_checker.md", llm_client, use_grounding=True, prompt_loader=loader
-        ),
-        "devils_advocate": make_agent_callable(
-            "06_devils_advocate.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "editor": make_agent_callable(
-            "07_editor_in_chief.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-    }
-    game = {
-        "format_architect": make_agent_callable(
-            "08_format_architect.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-        "html_builder": make_agent_callable(
-            "09_html_builder.md", llm_client, use_grounding=False, prompt_loader=loader
-        ),
-    }
-    return {**topic, **content, **game}
+    ``llm_client`` 는 legacy 시그니처 호환을 위한 옵션 — 무시된다.
+    각 에이전트는 ``config/agents.yaml`` 의 ``agents.<key>.model`` 별칭으로
+    별도 ``GeminiClient`` 를 받는다.
+    """
+    if llm_client is not None:
+        logger.debug("build_all_agents: llm_client 인자는 무시됨 (yaml 매핑 사용)")
+    return _build_agents(tuple(_AGENT_SPECS.keys()))
