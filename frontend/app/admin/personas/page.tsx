@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin-api";
 import { Button } from "@/components/ui/button";
 import { ToastStack, useToasts } from "@/components/admin/Toast";
+import { PromptEditor } from "@/components/admin/PromptEditor";
 import { cn } from "@/lib/utils";
 
 // agent 색상은 globals.css 의 CSS 변수 키와 매칭. 트레이스 뷰어와 동일 토큰.
@@ -273,8 +274,8 @@ export default function PersonasPage() {
               </div>
             </div>
 
-            {/* B2 Monaco fallback: textarea + 등폭폰트.
-                Monaco 미설치 — 명세 §B2 폴백 경로. RESULT.md [BLOCKED] 로그. */}
+            {/* B3-S3-E §B2: Monaco Editor (next/dynamic ssr:false 로 마운트).
+                저장/복원/히스토리 액션·dirty·경고 모달 로직은 그대로 재사용. */}
             <div className="relative">
               {!selectedId ? (
                 <div className="flex h-[60vh] items-center justify-center font-korean text-sm text-text-muted">
@@ -285,16 +286,10 @@ export default function PersonasPage() {
                   프롬프트 로드 중…
                 </div>
               ) : (
-                <textarea
-                  className={cn(
-                    "block min-h-[60vh] w-full resize-y border-0 bg-bg-secondary p-4",
-                    "font-mono text-[13px] leading-6 text-text-primary",
-                    "focus:outline-none focus:ring-2 focus:ring-accent-pink/30",
-                  )}
-                  spellCheck={false}
+                <PromptEditor
                   value={draft}
-                  onChange={(e) => {
-                    setDraft(e.target.value);
+                  onChange={(next) => {
+                    setDraft(next);
                     if (!dirty) setDirty(true);
                   }}
                 />
