@@ -57,7 +57,7 @@ Editor의 `final_content` + Format Architect의 `format_decision`을 받아, 즉
 - HTML 출력 시 `<img alt="설명 문자열">`로 박음
 - (추후 이미지 생성 단계에서 동일 문자열을 생성 프롬프트로 재활용 가능)
 
-## 인터랙티브 5종 마크업 가이드
+## 인터랙티브 6종 마크업 가이드
 
 ### QUIZ
 ```html
@@ -106,27 +106,6 @@ JS: 답안 클릭 시 정답/오답 표시 + explanation toggle. inline `<script
 ```
 JS: 클릭 시 현재 노드 hidden 처리, next 노드 표시.
 
-### COMPARE_SLIDER
-```html
-<div class="plustab-interactive compare-slider">
-  <div class="compare-wrap">
-    <div class="compare-left" style="width:50%">
-      <img src="..." alt="{{left.image_desc}}">
-      <span class="compare-label">{{left.label}}</span>
-    </div>
-    <div class="compare-right">
-      <img src="..." alt="{{right.image_desc}}">
-      <span class="compare-label">{{right.label}}</span>
-    </div>
-  </div>
-  <input type="range" class="compare-range" min="0" max="100" value="50">
-  <ul class="compare-highlights">
-    <li>{{차이점 1}}</li>
-  </ul>
-</div>
-```
-JS: range 변경 시 compare-left width 동기화.
-
 ### CHECKLIST
 ```html
 <div class="plustab-interactive checklist-container">
@@ -145,13 +124,62 @@ JS: range 변경 시 compare-left width 동기화.
 ```
 JS: 체크 변경 시 progress-fill width 동기화, 100% 시 completion 노출.
 
+### TAB_SWITCHER
+```html
+<div class="plustab-interactive tab-switcher" data-tabs>
+  <style>
+    .tab-switcher { background:#1a1a1a; border-radius:12px; padding:16px; color:#fff; }
+    .tab-switcher .tab-buttons { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .tab-switcher .tab-btn { min-height:44px; padding:10px 16px; background:#2a2a2a; color:#ccc;
+      border:1px solid #3a3a3a; border-radius:8px; cursor:pointer; font-size:15px; touch-action:manipulation; }
+    .tab-switcher .tab-btn.is-active { background:#ff2e98; color:#fff; border-color:#ff2e98; }
+    .tab-switcher .tab-panel { display:none; line-height:1.6; }
+    .tab-switcher .tab-panel.is-active { display:block; }
+  </style>
+  <div class="tab-buttons" role="tablist">
+    <button class="tab-btn is-active" data-tab-target="t1" role="tab" aria-selected="true">{{label 1}}</button>
+    <button class="tab-btn" data-tab-target="t2" role="tab" aria-selected="false">{{label 2}}</button>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel is-active" data-tab-id="t1" role="tabpanel">{{body_html 1}}</div>
+    <div class="tab-panel" data-tab-id="t2" role="tabpanel">{{body_html 2}}</div>
+  </div>
+</div>
+```
+JS: 탭 버튼 클릭 시 모든 `.tab-btn`/`.tab-panel`에서 `is-active` 제거 후 클릭된 버튼+해당 패널에 부여, `aria-selected` 동기화. inline `<script>`, vanilla JS, self-contained.
+
+### FLIP_CARD
+```html
+<div class="plustab-interactive flip-cards">
+  <style>
+    .flip-cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; }
+    .flip-card { perspective:1000px; min-height:160px; cursor:pointer; touch-action:manipulation; }
+    .flip-card-inner { position:relative; width:100%; height:100%; min-height:160px;
+      transform-style:preserve-3d; transition:transform 0.5s; }
+    .flip-card.is-flipped .flip-card-inner { transform:rotateY(180deg); }
+    .flip-card-front, .flip-card-back { position:absolute; inset:0; backface-visibility:hidden;
+      display:flex; align-items:center; justify-content:center; padding:16px;
+      border-radius:12px; text-align:center; line-height:1.5; }
+    .flip-card-front { background:#1a1a1a; color:#fff; border:1px solid #3a3a3a; }
+    .flip-card-back { background:#ff2e98; color:#fff; transform:rotateY(180deg); }
+  </style>
+  <div class="flip-card" data-flip tabindex="0" role="button" aria-pressed="false">
+    <div class="flip-card-inner">
+      <div class="flip-card-front">{{front 1}}</div>
+      <div class="flip-card-back">{{back 1}}</div>
+    </div>
+  </div>
+</div>
+```
+JS: `.flip-card` 클릭/Enter 시 `is-flipped` 토글 + `aria-pressed` 동기화. inline `<script>`, vanilla JS, self-contained.
+
 ## 출력 형식 (반드시 이 JSON 그대로)
 ```json
 {
   "html": "<완성된 HTML 문자열. JSON 문자열로 escape되며 들여쓰기·줄바꿈은 \\n 형태로 보존 가능 (가독성용).>",
   "selected_type_applied": "A|B|C",
   "base_layout_used": "A|B",
-  "interactive_template_used": "QUIZ|CALCULATOR|SCENARIO_SIM|COMPARE_SLIDER|CHECKLIST|null",
+  "interactive_template_used": "QUIZ|CALCULATOR|SCENARIO_SIM|CHECKLIST|TAB_SWITCHER|FLIP_CARD|null",
   "placeholder_substitutions": [
     {
       "name": "HERO_IMAGE_URL",
