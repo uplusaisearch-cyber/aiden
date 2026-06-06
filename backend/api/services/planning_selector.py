@@ -116,3 +116,101 @@ class PlanningSelector:
             segment_label=segment["label"],
             segment_persona=segment["persona"],
         )
+
+    def build_with_override(
+        self,
+        category: str,
+        override: dict[str, str | None],
+    ) -> Selection:
+        """사용자 명시 + 자동 회전 혼합 모드.
+
+        ``override["angle"]`` / ``override["audience_segment"]`` 중:
+          - None 또는 누락 → 자동 회전 (해당 카운터 진행, 기존 자동 사용자에게 영향 0)
+          - 유효한 key → 해당 preset 사용 (카운터 진행 X, 다른 자동 사용자 회전 순서 보존)
+          - presets.json 에 없는 key → ValueError
+
+        둘 다 명시 시 selector 카운터는 전혀 진행되지 않는다.
+        """
+        if not self._enabled_angles():
+            raise RuntimeError("planning_presets.json: enabled angle 0개")
+        if not self._segments:
+            raise RuntimeError("planning_presets.json: segment 0개")
+
+        angle_key = override.get("angle")
+        segment_key = override.get("audience_segment")
+
+        # angle 분기
+        if angle_key:
+            angle = next(
+                (a for a in self._angles if a.get("key") == angle_key),
+                None,
+            )
+            if angle is None:
+                raise ValueError(f"angle key 미정의: {angle_key!r}")
+            if angle.get("enabled") is not True:
+                # disabled (event_tie 등) — 자동 흐름에선 제외되지만 사용자가 명시했으면 허용.
+                # 다만 명시적으로 enabled=False 인 angle 도 허용할지는 v2 정책. 현재는 차단.
+                raise ValueError(
+                    f"angle key 비활성 — 사용 불가: {angle_key!r}"
+                )
+        else:
+            # 자동 — 카운터 진행
+            with self._lock:
+                enabled = self._enabled_angles()
+                angle = enabled[self._angle_idx % len(enabled)]
+                self._angle_idx += 1
+
+        # segment 분기
+        if segment_key:
+            segment = next(
+                (s for s in self._segments if s.get("key") == segment_key),
+                None,
+            )
+            if segment is None:
+                raise ValueError(f"segment key 미정의: {segment_key!r}")
+        else:
+            with self._lock:
+                segment = self._segments[self._segment_idx % len(self._segments)]
+                self._segment_idx += 1
+
+        logger.info(
+            "selector override category=%s angle=%s(%s) segment=%s(%s)",
+            category,
+            angle["key"], "manual" if angle_key else "auto",
+            segment["key"], "manual" if segment_key else "auto",
+        )
+        return Selection(
+            angle=angle["key"],
+            angle_label=angle["label"],
+            angle_directive=angle["directive"],
+            audience_segment=segment["key"],
+            segment_label=segment["label"],
+            segment_persona=segment["persona"],
+        )
+
+    def list_presets(self) -> dict[str, list[dict]]:
+        """프론트 모달에서 선택지 노출용. ``enabled`` 플래그 그대로 노출.
+
+        - angles: 9종 전체 + enabled 플래그 (UI 측에서 disabled 항목 회색 처리/숨김)
+        - segments: 7종 전체
+        - rotation: 회전 정책 (UI 표시용 메타)
+        """
+        return {
+            "angles": [
+                {
+                    "key": a["key"],
+                    "label": a["label"],
+                    "directive": a["directive"],
+                    "enabled": bool(a.get("enabled")),
+                }
+                for a in self._angles
+            ],
+            "segments": [
+                {
+                    "key": s["key"],
+                    "label": s["label"],
+                    "persona": s["persona"],
+                }
+                for s in self._segments
+            ],
+        }

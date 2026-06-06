@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
 import { HeroHeader } from "@/components/main/hero-header";
 import { CategoryCard } from "@/components/main/category-card";
 import { CustomInputCard, type CustomInputPayload } from "@/components/main/custom-input-card";
+import { PlanningModal } from "@/components/main/planning-modal";
 import { RecentRuns } from "@/components/main/recent-runs";
 import { Separator } from "@/components/ui/separator";
 import { CATEGORY_PRESETS, type CategoryId } from "@/lib/constants";
@@ -15,6 +15,7 @@ import {
   fetchOutputs,
   startGenerate,
   type OutputSummary,
+  type SelectionOverride,
   type CategoryId as ApiCategoryId,
 } from "@/lib/api";
 
@@ -35,6 +36,9 @@ export default function HomePage() {
   const router = useRouter();
   const [selected, setSelected] = useState<CategoryId | null>(null);
   const [customExpanded, setCustomExpanded] = useState(false);
+  // B4-S2 후속: 프리셋 4 카테고리 클릭 시 angle/SEG 선택 모달 오픈.
+  // 자유 입력은 이번 범위 X (모달 미오픈, 기존 카드 흐름 그대로).
+  const [modalCategory, setModalCategory] = useState<CategoryId | null>(null);
 
   // 데이터 소스: outputs.db (영속). MOCK fallback 없음 — 빈 DB 는 빈 상태로 표시.
   // placeholderData = (prev) => prev 로 재요청 중 이전 데이터 유지 → 새로고침 외 깜빡임 0.
@@ -46,26 +50,40 @@ export default function HomePage() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: (payload: { category: ApiCategoryId; custom_topic?: string }) =>
-      startGenerate(payload),
+    mutationFn: (payload: {
+      category: ApiCategoryId;
+      custom_topic?: string;
+      selection_override?: SelectionOverride | null;
+    }) => startGenerate(payload),
     onSuccess: (data) => router.push(`/run/${data.session_id}`),
   });
 
   const handleSelect = (id: CategoryId) => {
-    setSelected((prev) => (prev === id ? null : id));
-    setCustomExpanded(false);
-  };
-
-  const handleGenerate = (override?: CustomInputPayload) => {
-    if (override) {
-      generateMutation.mutate({
-        category: "custom",
-        custom_topic: override.topic,
-      });
+    if (id === "custom") {
+      // 자유 입력은 카드 내부 토픽 입력 흐름이라 모달 미오픈.
+      setSelected((prev) => (prev === id ? null : id));
       return;
     }
-    if (!selected || selected === "custom") return;
-    generateMutation.mutate({ category: selected as ApiCategoryId });
+    // 프리셋 4 카테고리는 클릭 시 즉시 모달 오픈 (selected 상태 유지로 시각 강조)
+    setSelected(id);
+    setCustomExpanded(false);
+    setModalCategory(id);
+  };
+
+  const handleConfirmModal = (override: SelectionOverride) => {
+    if (!modalCategory || modalCategory === "custom") return;
+    generateMutation.mutate({
+      category: modalCategory as ApiCategoryId,
+      selection_override:
+        override.angle || override.audience_segment ? override : null,
+    });
+  };
+
+  const handleGenerateCustom = (override: CustomInputPayload) => {
+    generateMutation.mutate({
+      category: "custom",
+      custom_topic: override.topic,
+    });
   };
 
   const runsForUI: MockRecentRun[] =
@@ -105,29 +123,9 @@ export default function HomePage() {
               setCustomExpanded(false);
               if (selected === "custom") setSelected(null);
             }}
-            onSubmit={handleGenerate}
+            onSubmit={handleGenerateCustom}
           />
         </div>
-
-        <AnimatePresence>
-          {selected && selected !== "custom" && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="flex justify-end pt-2"
-            >
-              <button
-                type="button"
-                onClick={() => handleGenerate()}
-                disabled={generateMutation.isPending}
-                className="rounded-md bg-accent-pink px-6 py-2 text-sm font-semibold text-white transition hover:bg-accent-pink-hover disabled:cursor-wait disabled:opacity-60 sm:text-base"
-              >
-                {generateMutation.isPending ? "시작 중…" : "Generate"}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {generateMutation.isError && (
           <p className="font-korean text-xs text-state-danger">
@@ -135,6 +133,14 @@ export default function HomePage() {
           </p>
         )}
       </section>
+
+      <PlanningModal
+        open={modalCategory !== null}
+        category={modalCategory}
+        onClose={() => setModalCategory(null)}
+        onConfirm={handleConfirmModal}
+        pending={generateMutation.isPending}
+      />
 
       <Separator className="my-10 bg-border-subtle" />
 

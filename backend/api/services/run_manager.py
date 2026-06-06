@@ -162,13 +162,18 @@ class RunManager:
         custom_topic: str | None = None,
         options: dict[str, Any] | None = None,
         session_id: str | None = None,
+        selection_override: dict[str, str | None] | None = None,
     ) -> str:
-        """run 을 백그라운드로 시작하고 session_id 반환."""
+        """run 을 백그라운드로 시작하고 session_id 반환.
+
+        ``selection_override`` 는 후속 모달에서 사용자가 명시한 angle / audience_segment 를
+        전달하는 경로. None / 빈 dict 면 기존 자동 회전 흐름과 동일.
+        """
         opts = options or {}
         sid = session_id or make_session_id()
         loop = asyncio.get_running_loop()
         task = loop.create_task(
-            self._execute(sid, category, custom_topic, opts, loop),
+            self._execute(sid, category, custom_topic, opts, loop, selection_override),
             name=f"aiden-run-{sid}",
         )
         self._active[sid] = task
@@ -191,15 +196,29 @@ class RunManager:
         custom_topic: str | None,
         options: dict[str, Any],
         main_loop: asyncio.AbstractEventLoop,
+        selection_override: dict[str, str | None] | None = None,
     ) -> None:
         skip_judge = bool(options.get("skip_judge"))
         started_at = datetime.now(timezone.utc)
 
         # B4-S2 C2: angle round-robin + segment rotate 조합 확정.
+        # B4-S2 후속: selection_override 가 있으면 명시한 쪽은 사용자 선택,
+        # 비명시 쪽은 자동 회전 (selector counter 의미론 그대로).
         # selector 실패는 비파괴적 폴백 (run 자체는 진행, planning 필드만 누락).
         selection: Selection | None = None
         try:
-            selection = PlanningSelector.instance().select(category)
+            selector = PlanningSelector.instance()
+            has_override = bool(
+                selection_override
+                and (
+                    selection_override.get("angle")
+                    or selection_override.get("audience_segment")
+                )
+            )
+            if has_override:
+                selection = selector.build_with_override(category, selection_override)
+            else:
+                selection = selector.select(category)
         except Exception as e:  # noqa: BLE001
             logger.warning("PlanningSelector 실패 — planning 필드 없이 진행: %s", e)
 

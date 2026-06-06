@@ -34,6 +34,7 @@ from backend.api.routers import (  # noqa: E402
     judges,
     outputs,
     personas,
+    planning,
     prompts,
     runs,
     stream,
@@ -95,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(personas.router)
     app.include_router(agents_models.router)
     app.include_router(outputs.router)
+    app.include_router(planning.router)
     # B3-S3-E admin
     app.include_router(admin_keys.router)
     app.include_router(admin_registry.router)

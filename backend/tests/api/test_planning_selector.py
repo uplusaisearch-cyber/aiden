@@ -76,3 +76,99 @@ class TestPlanningSelector:
         # 다른 category 라도 angle/segment 카운터는 1씩 진행됨
         assert first["angle"] != second["angle"]
         assert first["audience_segment"] != second["audience_segment"]
+
+
+class TestPlanningSelectorOverride:
+    """build_with_override: 사용자 명시 + 자동 회전 혼합 모드."""
+
+    @pytest.fixture
+    def selector(self):
+        PlanningSelector.reset_instance()
+        s = PlanningSelector()
+        yield s
+        PlanningSelector.reset_instance()
+
+    def test_1_full_override_does_not_advance_counters(self, selector):
+        """둘 다 명시 → angle/segment 카운터 진행 X (다음 자동 사용자 영향 0)."""
+        result = selector.build_with_override(
+            "food",
+            {"angle": "contrast", "audience_segment": "thirties_single"},
+        )
+        assert result["angle"] == "contrast"
+        assert result["angle_label"] == "대조/충돌"
+        assert result["audience_segment"] == "thirties_single"
+        assert result["segment_label"] == "30대 1인가구"
+        # 카운터는 그대로 0
+        assert selector._angle_idx == 0
+        assert selector._segment_idx == 0
+        # 곧이어 자동 호출하면 첫 enabled angle / 첫 segment 가 나와야 함
+        nxt = selector.select("food")
+        enabled_keys = [a["key"] for a in selector._angles if a.get("enabled") is True]
+        assert nxt["angle"] == enabled_keys[0]
+        assert nxt["audience_segment"] == selector._segments[0]["key"]
+
+    def test_2_partial_override_only_angle_advances_segment_counter(self, selector):
+        """angle 만 명시 → segment 카운터만 진행."""
+        result = selector.build_with_override(
+            "food",
+            {"angle": "ranking", "audience_segment": None},
+        )
+        assert result["angle"] == "ranking"
+        # segment 는 자동 회전 — 첫 segment
+        assert result["audience_segment"] == selector._segments[0]["key"]
+        # angle 카운터는 0, segment 카운터는 1
+        assert selector._angle_idx == 0
+        assert selector._segment_idx == 1
+
+    def test_3_partial_override_only_segment_advances_angle_counter(self, selector):
+        """segment 만 명시 → angle 카운터만 진행."""
+        result = selector.build_with_override(
+            "food",
+            {"angle": None, "audience_segment": "side_hustler"},
+        )
+        assert result["audience_segment"] == "side_hustler"
+        enabled_keys = [a["key"] for a in selector._angles if a.get("enabled") is True]
+        # 첫 enabled angle 자동 선택
+        assert result["angle"] == enabled_keys[0]
+        assert selector._angle_idx == 1
+        assert selector._segment_idx == 0
+
+    def test_4_invalid_angle_key_raises(self, selector):
+        """presets.json 에 없는 angle key → ValueError."""
+        with pytest.raises(ValueError, match="angle key 미정의"):
+            selector.build_with_override(
+                "food",
+                {"angle": "nonexistent_angle", "audience_segment": None},
+            )
+
+    def test_5_disabled_angle_is_rejected(self, selector):
+        """enabled=false 인 angle 은 명시 선택도 차단 (event_tie 등)."""
+        with pytest.raises(ValueError, match="비활성"):
+            selector.build_with_override(
+                "food",
+                {"angle": "event_tie", "audience_segment": None},
+            )
+
+    def test_6_invalid_segment_key_raises(self, selector):
+        """presets.json 에 없는 segment key → ValueError."""
+        with pytest.raises(ValueError, match="segment key 미정의"):
+            selector.build_with_override(
+                "food",
+                {"angle": None, "audience_segment": "nonexistent_seg"},
+            )
+
+    def test_7_list_presets_shape(self, selector):
+        """list_presets() 가 모달 노출에 필요한 9 angles + 7 segments 반환 + enabled 플래그."""
+        presets = selector.list_presets()
+        assert set(presets.keys()) == {"angles", "segments"}
+        assert len(presets["angles"]) == 9
+        assert len(presets["segments"]) == 7
+        # 각 angle 에 enabled 플래그 존재
+        for a in presets["angles"]:
+            assert set(a.keys()) == {"key", "label", "directive", "enabled"}
+        # event_tie 는 enabled=False
+        evt = next(a for a in presets["angles"] if a["key"] == "event_tie")
+        assert evt["enabled"] is False
+        # 나머지 8개는 enabled=True
+        enabled_count = sum(1 for a in presets["angles"] if a["enabled"])
+        assert enabled_count == 8

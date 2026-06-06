@@ -15,10 +15,22 @@ class GenerateOptions(BaseModel):
     safety_mode: SafetyMode = "normal"
 
 
+class SelectionOverride(BaseModel):
+    """B4-S2 후속: 사용자가 모달에서 명시 선택한 angle/segment.
+
+    각 필드 None = "자동(회전)" — selector 가 round-robin 으로 채움.
+    부분 override 도 지원 (한쪽만 명시, 다른쪽은 자동).
+    빈 dict 또는 둘 다 None 이면 selection_override 자체를 None 으로 보낸 것과 동일.
+    """
+    angle: str | None = None
+    audience_segment: str | None = None
+
+
 class GenerateRequest(BaseModel):
     category: CategoryId
     custom_topic: str | None = None
     options: GenerateOptions = Field(default_factory=GenerateOptions)
+    selection_override: SelectionOverride | None = None
 
 
 class GenerateResponse(BaseModel):

@@ -30,10 +30,18 @@ export interface GenerateOptions {
   safety_mode: "normal" | "dry_run";
 }
 
+/** B4-S2 후속: 사용자가 모달에서 명시한 angle/segment.
+ *  각 필드 null = 자동 회전 (selector round-robin) */
+export interface SelectionOverride {
+  angle?: string | null;
+  audience_segment?: string | null;
+}
+
 export interface GenerateRequest {
   category: CategoryId;
   custom_topic?: string;
   options?: Partial<GenerateOptions>;
+  selection_override?: SelectionOverride | null;
 }
 
 export interface GenerateResponse {
@@ -235,6 +243,32 @@ export function fetchAgentModels(): Promise<AgentModelsResponse> {
 /** 모델 ID 를 채팅 버블 옆에 노출할 짧은 라벨로 축약. ``gemini-`` prefix 제거. */
 export function shortModelLabel(modelId: string): string {
   return modelId.replace(/^gemini-/, "");
+}
+
+// ---------------------------------------------------------------
+// B4-S2 후속 — 모달에서 angle/SEG 선택지 받아오기
+// ---------------------------------------------------------------
+
+export interface PlanningAnglePreset {
+  key: string;
+  label: string;
+  directive: string;
+  enabled: boolean;
+}
+
+export interface PlanningSegmentPreset {
+  key: string;
+  label: string;
+  persona: string;
+}
+
+export interface PlanningPresetsResponse {
+  angles: PlanningAnglePreset[];
+  segments: PlanningSegmentPreset[];
+}
+
+export function fetchPlanningPresets(): Promise<PlanningPresetsResponse> {
+  return _fetchJson<PlanningPresetsResponse>(`${API_BASE}/api/planning/presets`);
 }
 
 // ---------------------------------------------------------------

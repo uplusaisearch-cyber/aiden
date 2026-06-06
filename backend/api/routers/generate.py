@@ -29,6 +29,11 @@ async def start_generate(
             category=req.category,
             custom_topic=req.custom_topic,
             options=req.options.model_dump(),
+            selection_override=(
+                req.selection_override.model_dump()
+                if req.selection_override is not None
+                else None
+            ),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"start_run 실패: {e}") from e
