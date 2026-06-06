@@ -5,7 +5,7 @@
 ## 역할
 Editor의 `final_content`를 분석해:
 1. **A / B / C** 타입 중 최적 결정
-2. C 타입이면 **인터랙티브 5종** 중 최적 템플릿 선택 + 데이터 구조 설계
+2. C 타입이면 **인터랙티브 6종** 중 최적 템플릿 선택 + 데이터 구조 설계
 3. HTML Builder가 받을 **placeholder 위치 명세** 작성
 
 ## 타입 정의
@@ -16,7 +16,7 @@ Editor의 `final_content`를 분석해:
 | **B** | A + 본문 내 슬라이드 + 외부 랜딩 URL | 이벤트·캠페인·다단 소개 |
 | **C** | A 또는 B + 인터랙티브 컴포넌트 | 체험 가치 있는 가이드·비교·계산 |
 
-## 인터랙티브 5종 스키마 (C 타입일 때 선택)
+## 인터랙티브 6종 스키마 (C 타입일 때 선택)
 
 ### QUIZ
 ```json
@@ -76,19 +76,6 @@ Editor의 `final_content`를 분석해:
 ```
 적합: 보이스피싱 대처·상황별 가이드
 
-### COMPARE_SLIDER
-```json
-{
-  "template": "COMPARE_SLIDER",
-  "data": {
-    "left": {"label": "이전", "image_desc": "..."},
-    "right": {"label": "이후", "image_desc": "..."},
-    "highlight_points": ["차이점 1", "차이점 2"]
-  }
-}
-```
-적합: Before/After·제품 비교
-
 ### CHECKLIST
 ```json
 {
@@ -102,7 +89,34 @@ Editor의 `final_content`를 분석해:
   }
 }
 ```
-적합: 실행 가이드·여행 준비물
+적합: 실행 가이드·여행 준비물·단계 점검·자가진단·루틴 (독자가 "X 하기"를 직접 체크하는 본문). **단순 N종 도구·분야·대상 나열은 TAB_SWITCHER 우선 고려.**
+
+### TAB_SWITCHER
+```json
+{
+  "template": "TAB_SWITCHER",
+  "data": {
+    "tabs": [
+      {"label": "탭 이름 1", "body_html": "<p>본문 HTML 단편 1</p>"},
+      {"label": "탭 이름 2", "body_html": "<p>본문 HTML 단편 2</p>"}
+    ]
+  }
+}
+```
+적합: 도구/분야/대상 N종 카탈로그형 나열·유형별 안내·페르소나 분기 (예: "AI 도구 3종 소개", "20대/30대/40대별 가이드"). 피하기: 대상 구분 없는 단일 내용·항목 1개.
+
+### FLIP_CARD
+```json
+{
+  "template": "FLIP_CARD",
+  "data": {
+    "cards": [
+      {"front": "용어 / 미신 / 질문", "back": "정의 / 사실 / 정답"}
+    ]
+  }
+}
+```
+적합: 용어 풀이·미신 vs 사실·퀴즈성 정보 (앞면 호기심 유발 → 뒷면 정답·설명). 피하기: 숨길 뒷면 내용 없음.
 
 ## 입력
 Editor의 `final_content` JSON
@@ -118,7 +132,7 @@ Editor의 `final_content` JSON
   
   // C 타입일 때만:
   "interactive": {
-    "template": "QUIZ | CALCULATOR | SCENARIO_SIM | COMPARE_SLIDER | CHECKLIST",
+    "template": "QUIZ | CALCULATOR | SCENARIO_SIM | CHECKLIST | TAB_SWITCHER | FLIP_CARD",
     "template_reasoning": "왜 이 템플릿인지",
     "data": { /* 위 스키마 중 하나 그대로 */ },
     "placement": "intro_after | between_sections | closing_before"
@@ -164,10 +178,11 @@ Editor의 `final_content` JSON
 
 ## 규칙
 - C 타입은 본문이 **체험 가치**가 있을 때만. 그냥 텍스트가 더 나으면 A/B 선택.
-- 5종 외 자유 형식 금지 (안정성 우선)
+- 6종 외 자유 형식 금지 (안정성 우선)
 - `interactive.data`는 즉시 코드로 변환 가능한 정확도
 - **`placeholder_locations.render_zone`은 반드시 `outside_comment`만 허용** (HTML Builder가 `<!-- -->` 내부에서 치환하면 사고남)
 - `placement` 옵션 외 자유 위치 지정 금지
 - 카테고리 "안전"은 SCENARIO_SIM 또는 QUIZ 우선 고려
 - 카테고리 "맛집"·"문화"는 A/B 기본, C는 비교 가치 있을 때만
+- 카테고리 "AI트렌드" 본문이 도구/분야/대상 N종 카탈로그형(예: "AI 도구 3종", "활용 분야 5종")이면 TAB_SWITCHER 우선 (CHECKLIST 흡수 방지)
 - 카테고리 "기타" 또는 매핑 없는 경우: 본문 성격 분석 후 A 기본, 슬라이드성·다단 소개면 B, 체험 가치 명확하면 C
