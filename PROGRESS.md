@@ -5,9 +5,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-06 **위젯 카탈로그 v3** (TAB_SWITCHER + FLIP_CARD 신설 / COMPARE_SLIDER 제거 / CHECKLIST 매칭교정) + **UI dead option 안내** (max_iter / SAFETY_MODE) |
-| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** + 메인 카드 MOCK 제거 **1/1** + 모델 라우팅 **1/1** (B4-S1) + Editor 반론 반영 보강 **1/1** (A+B+D) + Judge Panel session-missing 흡수 **1/1** + B4-S2 토픽×angle×SEG **1/1** (C1~C4) + RunManager 절대경로 fix **1/1** + B4-S2 후속 수동 override 모달 **1/1** + dev:fresh 스크립트 **1/1** + B4-S2 Writer/Editor Anthropic **1/1** (Sonnet+Opus, P0 fix 포함) + 런타임 날짜 prepend **1/1** + 위젯 카탈로그 v3 **1/1** (TAB+FLIP+COMPARE 제거+CHECKLIST 교정) + UI dead option 안내 **1/1** |
-| **현재 Phase** | Phase 1~5 + 영속화 + 모델 라우팅 + Editor 반론 보강 + B4-S2 토픽×angle×SEG + Writer Sonnet/Editor Opus + 런타임 날짜 prepend + 위젯 카탈로그 v3 + UI dead option 안내 까지 완료. **마감 2026-06-08** 잔여: (a) 발표/결선 PT 자료(별도 채팅), (b) 운영 종단 회귀(Vercel/Railway 최신 커밋 반영 후 1 run — TAB/FLIP 자연 분산 + CHECKLIST 보존 검증 포함), (c) 마감 후 트랙: 이미지 생성 에이전트 / max_tokens 상향 / dead option 실배선 |
+| **마지막 업데이트** | 2026-06-07 **메인 카드 동선 통일** (`/admin/runs?preview=` → `/run/{id}`) + **outputs.db final-html fallback** (디스크 wipe 후 빈 채팅 차단) + **더보기 페이지네이션** + **"저장된 출력 히스토리" 라벨 통일** (commit `05c18eb`) |
+| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** + 메인 카드 MOCK 제거 **1/1** + 모델 라우팅 **1/1** (B4-S1) + Editor 반론 반영 보강 **1/1** (A+B+D) + Judge Panel session-missing 흡수 **1/1** + B4-S2 토픽×angle×SEG **1/1** (C1~C4) + RunManager 절대경로 fix **1/1** + B4-S2 후속 수동 override 모달 **1/1** + dev:fresh 스크립트 **1/1** + B4-S2 Writer/Editor Anthropic **1/1** (Sonnet+Opus, P0 fix 포함) + 런타임 날짜 prepend **1/1** + 위젯 카탈로그 v3 **1/1** (TAB+FLIP+COMPARE 제거+CHECKLIST 교정) + UI dead option 안내 **1/1** + 메인 카드 동선/fallback **1/1** |
+| **현재 Phase** | Phase 1~5 + 영속화 + 모델 라우팅 + Editor 반론 보강 + B4-S2 토픽×angle×SEG + Writer Sonnet/Editor Opus + 런타임 날짜 prepend + 위젯 카탈로그 v3 + UI dead option 안내 + 메인 카드 동선/outputs.db fallback 까지 완료. **마감 2026-06-08** 잔여: (a) 발표/결선 PT 자료(별도 채팅, 우선순위 1 진입), (b) 운영 종단 회귀(Vercel/Railway 최신 커밋 반영 후 1 run), (c) 마감 후 트랙: 이미지 생성 에이전트 / max_tokens 상향 / dead option 실배선 |
 
 ### 2026-06-06 런타임 날짜 헤더 prepend (commit `5a53d68`)
 
@@ -31,6 +31,19 @@
 - 데모 리스크: 발표 중 누가 `max_iter=1` 골라서 빨리 끝날 거 기대하면 사고 / `dry_run` 골라도 실제 호출되어 비용 발생.
 - 패치: `custom-input-card.tsx` 고급 옵션 grid 마지막 줄에 `sm:col-span-3` 한 줄 안내 — "⚠ max_iter / SAFETY_MODE 는 현재 동작하지 않습니다. 추가 개발 예정인 옵션입니다." `skip_judge` 는 정상이라 의도적으로 문구에서 제외. 1 파일 +3 라인 edit.
 - 실배선은 마감 후 별건 큐 (백엔드 회귀 risk 있어 D-2 비차단).
+
+### 2026-06-07 메인 카드 동선 통일 + outputs.db final-html fallback (commit `05c18eb`)
+
+- **진단 (C1~C3 코드 확인)**: 두 영속 저장소가 **분리** 운영. (a) 메인 "최근 실행" → `GET /api/outputs` → **outputs.db** (SQLite, Railway Volume 영속, 종료+final_html 시 upsert). (b) `/run/{run_id}` 채팅 복원 → `GET /api/runs/{id}` → `trace_loader` → **`runs/<session>/agents/*.json`** 디스크 (Railway ephemeral FS, 재배포 시 휘발, Volume 미설정). 메인 카드 클릭 동선이 **`/admin/runs?preview=`** 로 가서 final_html 모달만 보였고 `/run/{run_id}` 의 채팅 다시보기 동선이 없었음. + `/run/{run_id}` 자체는 디스크 부재 시 채팅·BottomTabs final 탭 둘 다 사망 (judges.py 의 final-html 메타도 디스크 의존, outputs.db `final_html` 컬럼은 이 경로에서 미사용).
+- **§6 사전 확인 (가정 vs 레포 실제)**: 명세 그대로 진행 가능. (1) `GET /api/outputs` limit/offset 이미 지원 (`outputs.py:50-58`, `outputs_store.py:146`) → 백엔드 param 추가 불필요. (2) `GET /api/outputs/{run_id}` 의 `OutputDetail` 에 `final_html: string` 포함 (admin/runs preview 가 이미 `srcDoc` 으로 사용 — 검증된 경로 재사용). (3) fallback 위치 — page 컴포넌트가 분기 결정 owner, useRunStream 은 `fetchNotFound: boolean` 1 줄만 노출. (4) BottomTabs fallback 추가 시 judges.py 영향 0.
+- **패치 (5 파일, +318 / -19)**:
+  - **A. 카드 동선** (`recent-runs.tsx`): `href=/admin/runs?preview=` → **`/run/${sessionId}`**. 채팅 다시보기 직진 동선 확보.
+  - **B. /run/{id} fallback** (`useRunStream.ts` + `run/[id]/page.tsx`): useRunStream 의 fetch 404 catch 에서 `setState({ ...s, fetchNotFound: true })` 후 기존 `subscribeLive(null)` 유지 (라이브 race 보호). page 가 `useQuery(["output-fallback", runId], fetchOutputDetail, retry:false)` 병렬 조회. **fallback 게이트 = outputs hit AND `messages.length === 0` AND (`status === "completed"` OR `fetchNotFound`)**. 만족 시 personas 로딩과 무관하게 안내 배너(`state-warning` "대화 기록 만료") + iframe `srcDoc` (sandbox `allow-scripts`) 렌더. **outputs.db hit 이 핵심 게이트 — upsert 가 종료 시점에만 일어나므로 라이브 run 은 항상 outputs.db miss → fallback 미발동 확정**.
+  - **BottomTabs final 탭 fallback** (`FinalHtmlPreview.tsx`): metaQ(disk, judges.py) 1차 → outputsQ(db, `enabled: !metaQ.data?.available`) 2차. 렌더 체인 `Skeleton → DiskPreview(src) → FallbackPreview(srcDoc, '영속본' 배지 + 다운로드 링크) → NotAvailable(polling)`. judges.py 라우터 무변경 (라이브 폴링 유지).
+  - **C. 메인 6 → 더보기** (`page.tsx` + `recent-runs.tsx`): `recentLimit` useState(6) + queryKey 에 limit 포함, `fetchOutputs(recentLimit)` 가 백엔드 limit param 사용. RecentRuns 에 `hasMore`/`onLoadMore`/`isLoadingMore` props 추가, 카드 그리드 아래 `#ff2e98` outline 더보기 버튼 (+6 increment).
+  - **D. 라벨 통일** (`recent-runs.tsx`): "전체 보기 →" → **"저장된 출력 히스토리 →"** (도착지 `/admin/runs` 페이지 제목과 일관).
+- **회귀 점검 (코드 차원 PASS)**: 라이브 run = outputs.db miss → fallback 무발동 / terminal+chat 정상 = `messages > 0` 게이트로 차단 / appendUnique dedupe 미수정(setState updater 순수성 보존) / admin/runs preview 미수정 / outputs.db upsert 미수정 / queryKey `["output-fallback", runId]` page + FinalHtmlPreview 공유 → React Query 자동 dedupe 로 단일 fetch. TypeScript `tsc --noEmit` 무에러.
+- **남는 트레이드오프 (마감 후)**: (1) 디스크 wipe + outputs miss 케이스는 기존 "스트림 연결 실패" 에러 UI 그대로 (별도 not-found.tsx 통합 잔여). (2) EventSource 무한 retry 는 pre-existing concern (fallback 화면 표시되므로 사용자 무영향, 백그라운드 connection churn). (3) FinalHtmlPreview metaQ/outputsQ 동시 error 시 합쳐 노출 (rare, 15초 폴링으로 자동 회복).
 
 ---
 
@@ -269,6 +282,7 @@
 - **2026-06-06 · 자유 입력 고급 옵션 `max_iter` / `SAFETY_MODE` dead · 영향도 중간 · ✅ 부분 해소(2026-06-06, commit `31794dd`)** — schemas/router 까지 전달은 되지만 `run_manager`/`content_newsroom`/`llm_clients` 어디서도 읽지 않음 (`max_iter` grep 0건, `safety_mode` 는 env `settings.safety_mode` 만 보고 결정 — 요청 body 무시). `skip_judge` 만 정상 동작. UI 안내 1 줄 추가로 사용자 오인 risk 1차 차단. 실배선(`content_newsroom` 의 iter 회수 + `llm_clients` 의 요청별 safety_mode override)은 마감 후 별건. **데모 시 발표자가 `max_iter=1` 골라서 빨리 끝날 거 기대하거나 `dry_run` 골라도 실제 호출되어 비용 발생할 risk 가 안내 문구로 명시화됨.**
 - **2026-06-06 · 콘텐츠 이미지 placeholder 깨짐 · 영향도 낮음 · 의도된 동작(v2)** — `09_html_builder.md:44-47` 가 입력에 실제 이미지 URL 없으면 `https://image.lguplus.com/static/{slug}.jpg` 형태 placeholder URL 박음 → 브라우저에서 깨진 아이콘 표시. 실제 URL 주입은 **이미지 생성 에이전트(미구현) 또는 어드민 수동 입력(미구현)** 으로 별도 단계 처리 전제. `layout_hints.image_descriptions` 가 alt 텍스트 + 이미지 생성 프롬프트로 재활용되도록 이미 설계됨. 공수 추정: Gemini Imagen + 영속화(Vercel Blob/S3) + 안전 필터 fallback 까지 3~5일, 1 콘텐츠당 ~$0.12-0.32 추가. **마감 D-2 불가능**, 발표 PT 에 "v2 예정" 한 줄 명시 권장. 마감 후 별건 큐.
 - **2026-06-06 · 위젯 카탈로그 편향 (CHECKLIST 74%) · 영향도 중간 · ✅ 해소(2026-06-06, commits `73a6d85`/`d0b7471`)** — Phase 0 진단으로 `runs/` 43세션 분석 — C 채택률 72.1%, CHECKLIST 23/31 점유, COMPARE_SLIDER dead(0건), mismatch 26.1% 중 4건이 AI트렌드 "도구 N종 카탈로그형" → 매칭 위젯 부재로 CHECKLIST 흡수. TAB_SWITCHER + FLIP_CARD 신설 + COMPARE_SLIDER 제거 + CHECKLIST 매칭교정으로 해소. 코드차원 회귀 PASS (기존 4종 case diff 0 / active vs _defaults 일관). **라이브 E2E 3 run** (도구N종→TAB / 미신vs사실→FLIP / 준비물→CHECKLIST 보존) 운영 회귀로 위임.
+- **2026-06-07 · 메인 카드 동선 mismatch + /run/{id} 디스크 wipe 시 빈 채팅 · 영향도 중간 · ✅ 해소(2026-06-07, commit `05c18eb`)** — (a) 메인 카드 클릭이 `/admin/runs?preview=` 모달로만 가서 채팅 다시보기 동선 부재. (b) Railway 재배포 시 `runs/<session>/` 휘발 → `/run/{id}` fetch 404 → useRunStream 이 SSE 시도하지만 broker 도 휘발 → "streaming" 상태로 빈 화면 무한 대기. **outputs.db hit 게이트** 기반 fallback 으로 해소: 라이브 run 은 outputs.db miss 라 fallback 미발동 보장, terminal+disk wipe 케이스에서만 iframe `srcDoc` (anim/script 동작) + 만료 안내 배너 노출. BottomTabs final 탭도 동일 fallback (judges.py 무변경). 메인 카드 동선 `/run/{id}` 통일 + 더보기 페이지네이션 + "저장된 출력 히스토리" 라벨 통일 같이 처리.
 
 ---
 
