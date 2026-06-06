@@ -148,6 +148,9 @@ export function CustomInputCard({ expanded, onExpand, onCollapse, onSubmit }: Pr
                   ))}
                 </div>
               </div>
+              <p className="font-korean text-[11px] text-text-muted sm:col-span-3">
+                ⚠ <span className="font-mono">max_iter</span> / <span className="font-mono">SAFETY_MODE</span> 는 현재 동작하지 않습니다. 추가 개발 예정인 옵션입니다.
+              </p>
             </div>
           </motion.div>
         )}
