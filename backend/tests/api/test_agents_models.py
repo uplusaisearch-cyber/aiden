@@ -34,14 +34,28 @@ def test_newsroom_short_keys_present():
     assert set(data["newsroom"].keys()) == expected
 
 
-def test_pro_hi_agents_carry_3_1_pro_preview():
-    """B4-S1 A안: planner/writer/editor 가 gemini-3.1-pro-preview 로 라우팅."""
+def test_planner_uses_pro_hi():
+    """B4-S1: planner 는 gemini-3.1-pro-preview 유지.
+
+    B4-S2(Writer/Editor Claude 전환) 이후 pro_hi 사용 에이전트는 planner 1종만 남음.
+    """
     with TestClient(app) as c:
         data = _get(c)
-    for key in ("planner", "writer", "editor"):
-        entry = data["newsroom"][key]
-        assert entry["alias"] == "gemini_pro_hi", f"{key}: {entry}"
-        assert entry["model_id"] == "gemini-3.1-pro-preview", f"{key}: {entry}"
+    entry = data["newsroom"]["planner"]
+    assert entry["alias"] == "gemini_pro_hi", entry
+    assert entry["model_id"] == "gemini-3.1-pro-preview", entry
+
+
+def test_writer_editor_use_anthropic():
+    """B4-S2: Writer → claude-sonnet-4-6, Editor → claude-opus-4-7."""
+    with TestClient(app) as c:
+        data = _get(c)
+    writer = data["newsroom"]["writer"]
+    assert writer["alias"] == "anthropic_sonnet", writer
+    assert writer["model_id"] == "claude-sonnet-4-6", writer
+    editor = data["newsroom"]["editor"]
+    assert editor["alias"] == "anthropic_opus", editor
+    assert editor["model_id"] == "claude-opus-4-7", editor
 
 
 def test_pro_agents_use_2_5_pro():

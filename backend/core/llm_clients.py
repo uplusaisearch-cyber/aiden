@@ -96,6 +96,7 @@ _PRICE_TABLE: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash": (0.075, 0.30),
     "gpt-5": (5.00, 15.00),                 # placeholder
     "claude-opus-4-7": (15.00, 75.00),      # placeholder
+    "claude-sonnet-4-6": (3.00, 15.00),     # placeholder (Sonnet 등급 추정 / Writer 용)
 }
 
 

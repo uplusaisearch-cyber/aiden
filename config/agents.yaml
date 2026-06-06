@@ -5,13 +5,16 @@
 
 # 모델 별칭 → 실제 모델 ID 매핑
 # 코드 안에서는 항상 별칭을 사용. 별칭 → 모델 ID 매핑만 여기서 손대면 됨.
-# gemini_pro_hi 는 발화 품질이 핵심인 planner/writer/editor 전용 (B4-S1, 2026-06-05).
+# gemini_pro_hi 는 발화 품질이 핵심인 planner 전용 (B4-S1, 2026-06-05).
+# anthropic_sonnet/opus 는 Writer/Editor 전용 (B4-S2, 2026-06-06).
 models:
-  gemini_pro_hi: "gemini-3.1-pro-preview"   # 핵심 발화 (planner/writer/editor)
+  gemini_pro_hi: "gemini-3.1-pro-preview"   # 핵심 발화 (planner)
   gemini_pro: "gemini-2.5-pro"              # 구조·코드 정확도 (architect/builder)
   gemini_flash: "gemini-2.5-flash"          # 기계·grounding·비판 (scout/analyst/factcheck/devils)
   openai_judge: "gpt-5"                     # 추후 실제 모델명으로 조정
-  anthropic_judge: "claude-opus-4-7"
+  anthropic_judge: "claude-opus-4-7"        # Judge Panel 전용
+  anthropic_sonnet: "claude-sonnet-4-6"     # Writer (Claude 작성)
+  anthropic_opus: "claude-opus-4-7"         # Editor-in-Chief (Claude 상위 검수)
 
 agents:
   trend_scout:
@@ -24,7 +27,7 @@ agents:
     model: "gemini_pro_hi"
     grounding: false
   writer:
-    model: "gemini_pro_hi"
+    model: "anthropic_sonnet"
     grounding: false
   fact_checker:
     model: "gemini_flash"
@@ -33,7 +36,7 @@ agents:
     model: "gemini_flash"
     grounding: false
   editor_in_chief:
-    model: "gemini_pro_hi"
+    model: "anthropic_opus"
     grounding: false
   format_architect:
     model: "gemini_pro"
