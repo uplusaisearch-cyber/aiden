@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIDEN — AI Deliberation Engine for Newsroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+:root{
+  --pink:#ff2e98; --pink-soft:#ff6fb8; --pink-glow:rgba(255,46,152,.45);
+  --bg:#0a0a0f; --bg2:#0e0e16; --panel:#13131d; --panel2:#181824;
+  --line:#262633; --line2:#33333f;
+  --text:#f4f4f8; --muted:#9595a8; --dim:#6a6a7e;
+  --cyan:#38e1d3; --amber:#ffb84d; --violet:#9d7bff; --green:#4ade80;
+  --mono:'IBM Plex Mono',monospace;
+  --display:'Space Grotesk','Pretendard',sans-serif;
+  --sans:'Pretendard','Space Grotesk',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--sans); line-height:1.65;
+  word-break:keep-all; overflow-wrap:break-word;
+  overflow-x:hidden; -webkit-font-smoothing:antialiased;
+}
+/* keep-all 전역: 한글 어절 단위 줄바꿈 */
+h1,h2,h3,h4,p,li,span,div,.who,.nm{word-break:keep-all;overflow-wrap:break-word}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(255,46,152,.10), transparent 60%),
+    radial-gradient(900px 500px at 0% 30%, rgba(157,123,255,.07), transparent 55%),
+    radial-gradient(800px 600px at 60% 110%, rgba(56,225,211,.06), transparent 55%);}
+body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+.wrap{position:relative;z-index:2}
+
+#prog{position:fixed;top:0;left:0;height:3px;width:0;z-index:100;
+  background:linear-gradient(90deg,var(--pink),var(--violet),var(--cyan));
+  box-shadow:0 0 14px var(--pink-glow);transition:width .1s linear}
+
+#dots{position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:14px}
+#dots a{width:9px;height:9px;border-radius:50%;background:var(--line2);transition:.35s;position:relative}
+#dots a:hover{background:var(--muted)}
+#dots a.on{background:var(--pink);box-shadow:0 0 12px var(--pink-glow);transform:scale(1.35)}
+#dots a span{position:absolute;right:18px;top:50%;transform:translateY(-50%);white-space:nowrap;
+  font:500 11px/1 var(--mono);color:var(--muted);opacity:0;transition:.3s;pointer-events:none;letter-spacing:.04em}
+#dots a:hover span{opacity:1;right:20px}
+@media(max-width:900px){#dots{display:none}}
+
+section{padding:120px 7vw;max-width:1280px;margin:0 auto;position:relative}
+@media(max-width:700px){section{padding:80px 26px}}
+
+.tag{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--mono);
+  letter-spacing:.18em;text-transform:uppercase;color:var(--pink-soft);
+  padding:7px 14px;border:1px solid var(--line2);border-radius:100px;background:rgba(255,46,152,.05)}
+.tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--pink);box-shadow:0 0 10px var(--pink)}
+
+.reveal{opacity:0;transform:translateY(34px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}.d5{transition-delay:.4s}
+
+/* HERO */
+#hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding-top:60px;padding-bottom:60px}
+.hero-grid{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:64px 64px;opacity:.25;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000,transparent 75%)}
+#hero .inner{position:relative;z-index:2}
+.eyebrow{font:500 13px/1 var(--mono);letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:30px}
+.h-title{font-family:var(--display);font-weight:700;font-size:clamp(52px,11vw,150px);line-height:.92;letter-spacing:-.04em}
+.h-title .gleam{background:linear-gradient(120deg,#fff 10%,var(--pink) 45%,var(--violet) 70%,var(--cyan) 95%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% auto;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+.h-expand{font-family:var(--mono);font-size:clamp(13px,2vw,17px);color:var(--dim);margin-top:24px;letter-spacing:.02em}
+.h-expand b{color:var(--pink-soft);font-weight:500}
+.h-lead{font-family:var(--display);font-weight:500;font-size:clamp(22px,3.6vw,38px);line-height:1.35;margin-top:46px;max-width:780px;color:#eaeaf2;letter-spacing:-.01em}
+.h-lead em{color:var(--pink);font-style:normal}
+.h-strike{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--pink);text-decoration-thickness:2px}
+.h-note{font-family:var(--sans);font-weight:400;font-size:clamp(15px,2.2vw,20px);color:var(--muted);margin-top:28px;max-width:640px;line-height:1.6}
+.scroll-hint{margin-top:64px;display:flex;align-items:center;gap:12px;font:500 12px/1 var(--mono);color:var(--muted);letter-spacing:.1em}
+.scroll-hint .ln{width:46px;height:1px;background:var(--line2);position:relative;overflow:hidden}
+.scroll-hint .ln::after{content:'';position:absolute;inset:0;width:40%;background:var(--pink);animation:run 1.8s ease-in-out infinite}
+@keyframes run{0%{left:-40%}100%{left:120%}}
+
+h2.sec{font-family:var(--display);font-weight:700;font-size:clamp(34px,5.5vw,68px);line-height:1.05;letter-spacing:-.03em;margin:22px 0 0}
+h2.sec .pk{color:var(--pink)}
+.sub{font-size:clamp(15px,2vw,19px);color:var(--muted);max-width:700px;margin-top:22px;line-height:1.75}
+.sub b{color:var(--text);font-weight:600}
+
+/* PROBLEM */
+.prob-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:60px}
+@media(max-width:760px){.prob-grid{grid-template-columns:1fr}}
+.pcard{border:1px solid var(--line);border-radius:20px;padding:38px;background:linear-gradient(160deg,var(--panel),var(--bg2));position:relative;overflow:hidden}
+.pcard::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:var(--pink);transform:scaleX(0);transform-origin:left;transition:transform .7s .2s}
+.pcard.in::before{transform:scaleX(1)}
+.pcard .n{font:600 13px/1 var(--mono);color:var(--pink-soft);letter-spacing:.1em}
+.pcard h3{font-family:var(--display);font-size:25px;font-weight:600;margin:18px 0 12px;letter-spacing:-.01em}
+.pcard p{color:var(--muted);font-size:15.5px;line-height:1.75}
+
+/* ARCHITECTURE */
+#arch{max-width:1360px}
+.arch-stage{position:relative;border:1px solid var(--line);border-radius:24px;
+  background:radial-gradient(700px 300px at 50% -10%,rgba(255,46,152,.06),transparent 70%),linear-gradient(180deg,var(--panel),var(--bg2));
+  padding:56px 36px;margin-top:60px;overflow:hidden}
+.arch-stage::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:40px 40px;opacity:.13;mask-image:radial-gradient(ellipse 70% 100% at 50% 0%,#000,transparent)}
+/* scan beam across the whole flow */
+.scanbeam{position:absolute;top:0;bottom:0;width:200px;z-index:1;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent,rgba(255,46,152,.13),rgba(56,225,211,.10),transparent)}
+.arch-stage.live .scanbeam{opacity:1;animation:scan 5.5s ease-in-out infinite}
+@keyframes scan{0%{left:-200px}100%{left:100%}}
+
+.flow{position:relative;z-index:2;display:flex;align-items:stretch;justify-content:space-between}
+@media(max-width:980px){.flow{flex-direction:column}}
+.stagebox{flex:1;min-width:0;position:relative}
+.stagebox .sn{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px}
+.stagebox .sn .b{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font:700 11px/1 var(--mono);background:var(--panel2);border:1px solid var(--line2);color:var(--dim)}
+.stagebox .label{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.stagebox.s1 .label,.stagebox.s1 .sn .b{color:var(--cyan)} .stagebox.s1 .sn .b{border-color:rgba(56,225,211,.35)}
+.stagebox.s2 .label,.stagebox.s2 .sn .b{color:var(--pink-soft)} .stagebox.s2 .sn .b{border-color:rgba(255,46,152,.35)}
+.stagebox.s3 .label,.stagebox.s3 .sn .b{color:var(--amber)} .stagebox.s3 .sn .b{border-color:rgba(255,184,77,.35)}
+.stagebox.s4 .label,.stagebox.s4 .sn .b{color:var(--violet)} .stagebox.s4 .sn .b{border-color:rgba(157,123,255,.35)}
+.agents{display:flex;flex-direction:column;gap:10px;padding:0 12px;position:relative}
+/* vertical connector inside a stage */
+.agents::before{content:'';position:absolute;left:50%;top:14px;bottom:14px;width:2px;transform:translateX(-50%);
+  background:repeating-linear-gradient(var(--line2) 0 4px,transparent 4px 9px);opacity:0;transition:opacity .6s .5s;z-index:0}
+.arch-stage.live .agents::before{opacity:.5}
+.ag{border:1px solid var(--line2);border-radius:13px;padding:13px 15px;background:var(--panel2);position:relative;z-index:1;
+  transition:.45s;opacity:.25;transform:translateY(10px)}
+.arch-stage.live .ag{opacity:1;transform:none}
+.ag:hover{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink),0 8px 30px -8px var(--pink-glow);transform:translateY(-3px)}
+.ag .nm{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.ag .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;flex-shrink:0}
+.ag .mdl{font:500 10.5px/1.3 var(--mono);color:var(--dim);margin-top:5px}
+.ag .gd{position:absolute;top:11px;right:12px;font:600 9px/1 var(--mono);color:var(--green);
+  border:1px solid rgba(74,222,128,.3);border-radius:5px;padding:3px 5px;background:rgba(74,222,128,.08)}
+.mG{background:rgba(56,225,211,.13);color:var(--cyan)}
+.mC{background:rgba(255,46,152,.14);color:var(--pink-soft)}
+.mX{background:rgba(157,123,255,.14);color:var(--violet)}
+/* horizontal connectors w/ multi particles */
+.conn{display:flex;align-items:center;justify-content:center;min-width:44px;position:relative}
+@media(max-width:980px){.conn{min-height:54px}}
+.conn svg{width:44px;height:30px;overflow:visible}
+@media(max-width:980px){.conn svg{transform:rotate(90deg)}}
+.conn .track{stroke:var(--line2);stroke-width:2;fill:none}
+.conn .dot{fill:var(--pink);filter:drop-shadow(0 0 5px var(--pink-glow))}
+.arch-stage.live .conn .dot{animation:travel 2.2s linear infinite}
+.arch-stage.live .conn .dot.b{animation-delay:.73s}
+.arch-stage.live .conn .dot.c{animation-delay:1.46s}
+@keyframes travel{0%{transform:translateX(0);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translateX(40px);opacity:0}}
+
+.io{display:flex;justify-content:space-between;gap:20px;margin-top:36px;position:relative;z-index:2;flex-wrap:wrap}
+.iobox{flex:1;min-width:230px;border-radius:14px;padding:18px 22px;border:1px dashed var(--line2);background:rgba(255,255,255,.015)}
+.iobox .k{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.iobox .v{font-size:15px;margin-top:7px;color:var(--text)}
+.iobox.in-{border-color:rgba(56,225,211,.4)} .iobox.out{border-color:rgba(157,123,255,.4)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:28px;position:relative;z-index:2;font:500 12px/1 var(--mono);color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:11px;height:11px;border-radius:4px;display:inline-block}
+
+/* DEBATE */
+#debate{max-width:1180px}
+.debate-wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;margin-top:60px;align-items:center}
+@media(max-width:900px){.debate-wrap{grid-template-columns:1fr;gap:36px}}
+.ring{position:relative;aspect-ratio:1;max-width:450px;margin:0 auto;width:100%}
+.ring svg{width:100%;height:100%;overflow:visible}
+.node{position:absolute;width:130px;transform:translate(-50%,-50%);text-align:center}
+.node .chip{border:1px solid var(--line2);border-radius:14px;padding:12px 8px;background:var(--panel2);transition:.4s}
+.node.active .chip{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink),0 0 36px -6px var(--pink-glow);background:var(--panel);transform:scale(1.06)}
+.node .role{font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.node .who{font-weight:600;font-size:14px;margin-top:5px}
+.node.active .who{color:var(--pink-soft)}
+.ring .orbit{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:4 6}
+.ring .arc{fill:none;stroke:var(--pink);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--pink-glow));transition:d .5s}
+.ring .pulse{fill:var(--pink);filter:drop-shadow(0 0 8px var(--pink-glow))}
+.ring .center{text-anchor:middle;font-family:var(--display)}
+.rnum{font-size:48px;font-weight:700;fill:var(--text)}
+.rlbl{font:600 9px/1 var(--mono);letter-spacing:.2em;fill:var(--dim);text-transform:uppercase}
+.debate-info .step{border-left:2px solid var(--line2);padding:14px 0 14px 22px;position:relative;transition:.4s;opacity:.4}
+.debate-info .step.on{opacity:1;border-color:var(--pink)}
+.debate-info .step .t{font-weight:600;font-size:16px;display:flex;align-items:center;gap:10px}
+.debate-info .step .t .num{font:600 11px/1 var(--mono);color:var(--pink-soft);border:1px solid var(--line2);border-radius:6px;padding:4px 7px}
+.debate-info .step p{color:var(--muted);font-size:14px;margin-top:6px;line-height:1.6}
+.rounds{display:flex;gap:10px;margin-top:26px}
+.rounds .rd{flex:1;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;background:var(--panel)}
+.rounds .rd .rl{font:600 10px/1 var(--mono);color:var(--dim);letter-spacing:.1em}
+.rounds .rd .rc{font-family:var(--display);font-size:30px;font-weight:700;margin-top:6px;color:var(--pink)}
+.rounds .rd .rt{font-size:11px;color:var(--muted);margin-top:2px}
+.kw{margin-top:24px;border:1px solid var(--line2);border-radius:14px;padding:18px 20px;background:rgba(255,184,77,.05);font-size:14px;color:var(--muted);line-height:1.7}
+.kw b{color:var(--amber);font-family:var(--mono);font-weight:600;font-size:13px}
+
+/* JUDGE */
+#judge{max-width:1180px}
+.consensus{display:flex;align-items:baseline;gap:18px;margin-top:40px;flex-wrap:wrap}
+.consensus .cv{font-family:var(--display);font-weight:700;font-size:clamp(48px,8vw,84px);line-height:1;letter-spacing:-.04em;
+  background:linear-gradient(120deg,#fff,var(--pink) 85%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.consensus .ck{font:600 12px/1.5 var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.consensus .cd{font:500 13px/1 var(--mono);color:var(--dim)}
+.judge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:34px}
+@media(max-width:760px){.judge-grid{grid-template-columns:1fr}}
+.jcard{border:1px solid var(--line);border-radius:18px;padding:26px;background:linear-gradient(165deg,var(--panel),var(--bg2));position:relative;overflow:hidden;transition:.4s}
+.jcard:hover{transform:translateY(-5px);border-color:var(--line2)}
+.jcard .glow{position:absolute;inset:0;opacity:.5;background:radial-gradient(120px 80px at 80% 0,var(--gc,var(--pink)),transparent 70%)}
+.jcard .jh{display:flex;align-items:center;gap:11px;position:relative}
+.jcard .jh .av{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:17px}
+.jcard .jh .jn{font-family:var(--display);font-weight:600;font-size:19px}
+.jcard .jm{font:500 11px/1 var(--mono);color:var(--dim);margin-top:3px}
+.jscore{font-family:var(--display);font-weight:700;font-size:50px;margin-top:18px;position:relative;letter-spacing:-.03em}
+.jscore .sm{font-size:18px;color:var(--dim);font-weight:500}
+.jdelta{font:500 11px/1 var(--mono);color:var(--muted);margin-top:8px}
+.axes{margin-top:40px;border:1px solid var(--line);border-radius:18px;padding:30px;background:var(--panel)}
+.axes h4{font-family:var(--display);font-size:16px;font-weight:600;margin-bottom:20px;color:var(--muted)}
+.axis{display:grid;grid-template-columns:130px 1fr 50px;align-items:center;gap:14px;margin:13px 0}
+@media(max-width:600px){.axis{grid-template-columns:96px 1fr 42px}}
+.axis .al{font-size:13.5px;font-weight:600}
+.axis .ab{height:9px;border-radius:6px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
+.axis .af{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--pink),var(--pink-soft));width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.axis.in .af{width:var(--w)}
+.axis .aw{font:600 13px/1 var(--mono);color:var(--pink-soft);text-align:right}
+
+/* DIFF / COST / META */
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px}
+@media(max-width:880px){.diff-grid{grid-template-columns:1fr}}
+.dcard{border:1px solid var(--line);border-radius:18px;padding:32px;background:var(--panel);position:relative;transition:.4s;overflow:hidden}
+.dcard:hover{border-color:var(--pink);transform:translateY(-4px)}
+.dcard .di{font-family:var(--display);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:.04em}
+.dcard h3{font-family:var(--display);font-size:21px;font-weight:600;margin:14px 0 10px;letter-spacing:-.01em}
+.dcard p{color:var(--muted);font-size:14.5px;line-height:1.75}
+.note{margin-top:42px;font-family:var(--display);font-weight:500;font-size:clamp(18px,2.5vw,26px);line-height:1.5;color:#dcdce6;
+  border-left:3px solid var(--pink);padding:6px 0 6px 26px;max-width:840px;letter-spacing:-.01em}
+.note em{color:var(--pink);font-style:normal}
+
+.cost-wrap{display:grid;grid-template-columns:.85fr 1.15fr;gap:44px;margin-top:56px;align-items:center}
+@media(max-width:860px){.cost-wrap{grid-template-columns:1fr}}
+.cost-big{font-family:var(--display);font-weight:700;font-size:clamp(60px,10vw,120px);line-height:1;letter-spacing:-.04em;
+  background:linear-gradient(120deg,#fff,var(--pink) 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cost-big .u{font-size:.32em;color:var(--muted);-webkit-text-fill-color:var(--muted)}
+.cost-sub{font-family:var(--mono);font-size:13px;color:var(--dim);margin-top:12px;line-height:1.6}
+.calls{display:flex;flex-direction:column;gap:12px}
+.callrow{display:grid;grid-template-columns:80px 1fr 58px;align-items:center;gap:14px}
+.callrow .cl{font:600 12px/1 var(--mono);color:var(--muted)}
+.callrow .cbar{height:34px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;position:relative}
+.callrow .cfill{height:100%;width:0;border-radius:8px;transition:width 1.2s cubic-bezier(.2,.8,.2,1);background:linear-gradient(90deg,rgba(255,46,152,.25),var(--pink))}
+.callrow.in .cfill{width:var(--w)}
+.callrow .cv{font:600 14px/1 var(--mono);color:var(--text);text-align:right}
+
+.meta-split{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:56px;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+@media(max-width:760px){.meta-split{grid-template-columns:1fr}}
+.meta-split>div{padding:40px}
+.meta-split .ml{background:linear-gradient(160deg,rgba(255,46,152,.07),transparent);border-right:1px solid var(--line)}
+@media(max-width:760px){.meta-split .ml{border-right:none;border-bottom:1px solid var(--line)}}
+.meta-split h4{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+.meta-split ul{list-style:none}
+.meta-split li{font-size:15.5px;padding:9px 0;padding-left:24px;position:relative;color:var(--text)}
+.meta-split li::before{content:'';position:absolute;left:0;top:14px;width:8px;height:8px;border-radius:3px}
+.meta-split .ml li::before{background:var(--pink)} .meta-split .mr li::before{background:var(--violet)}
+
+.road{margin-top:54px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.rcard{border:1px solid var(--line);border-radius:16px;padding:24px;background:var(--panel);transition:.35s}
+.rcard:hover{border-color:var(--line2);background:var(--panel2)}
+.rcard .rt2{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:14px}
+.rcard ul{list-style:none}
+.rcard li{font-size:13.5px;color:var(--muted);padding:6px 0 6px 16px;position:relative;line-height:1.55}
+.rcard li::before{content:'→';position:absolute;left:0;color:var(--dim);font-family:var(--mono)}
+
+.stack{display:flex;flex-wrap:wrap;gap:10px;margin-top:46px}
+.chip2{font:500 13px/1 var(--mono);padding:11px 16px;border:1px solid var(--line);border-radius:100px;color:var(--muted);background:var(--panel);transition:.3s}
+.chip2:hover{border-color:var(--pink);color:var(--text);transform:translateY(-2px)}
+.chip2 b{color:var(--pink-soft);font-weight:600}
+
+footer{padding:80px 7vw 110px;max-width:1280px;margin:0 auto;border-top:1px solid var(--line);position:relative;z-index:2}
+.foot-big{font-family:var(--display);font-weight:700;font-size:clamp(40px,7vw,90px);line-height:1;letter-spacing:-.04em}
+.foot-big .gleam{background:linear-gradient(120deg,#fff,var(--pink),var(--violet));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.foot-meta{font-family:var(--mono);font-size:12.5px;color:var(--dim);margin-top:28px;line-height:2}
+
+/* SYSTEM ARCH */
+#sysarch{max-width:1100px}
+.sys{margin-top:56px;border:1px solid var(--line);border-radius:24px;padding:44px 36px;position:relative;overflow:hidden;
+  background:radial-gradient(600px 300px at 50% 0,rgba(157,123,255,.05),transparent 70%),linear-gradient(180deg,var(--panel),var(--bg2))}
+.sys::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:38px 38px;opacity:.1;mask-image:radial-gradient(ellipse 80% 100% at 50% 0,#000,transparent)}
+.layer{position:relative;z-index:2}
+.lhead{display:flex;align-items:center;gap:9px;font:600 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:14px}
+.lhead .ldot{width:8px;height:8px;border-radius:50%}
+.box{border:1px solid var(--line2);border-radius:16px;padding:20px 22px;background:var(--panel2)}
+.box .bt{font-family:var(--display);font-weight:600;font-size:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.box .bnote{font:500 10.5px/1.3 var(--mono);color:var(--dim);font-weight:400}
+.box .bs{font:500 12px/1 var(--mono);color:var(--muted);margin-top:6px}
+.box.vercel{border-color:rgba(56,225,211,.3)}
+.box.backend{border-color:rgba(255,46,152,.28)}
+.btags{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.btags span{font:500 10.5px/1 var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg2)}
+.orchs{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:16px}
+@media(max-width:760px){.orchs{grid-template-columns:1fr 1fr}}
+.orch{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:12.5px;font-weight:600;background:var(--bg2);position:relative}
+.orch .loop{display:block;font:500 9.5px/1.4 var(--mono);color:var(--dim);font-weight:400;margin-top:3px}
+.orch.s1{border-color:rgba(56,225,211,.3)} .orch.s2{border-color:rgba(255,46,152,.3)}
+.orch.s3{border-color:rgba(255,184,77,.3)} .orch.s4{border-color:rgba(157,123,255,.3)}
+.binfra{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.binfra .inf{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;
+  border:1px dashed var(--line2);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.012)}
+.binfra .inf .ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;flex-shrink:0}
+.binfra .inf .bnote{margin-left:auto}
+
+.bus{position:relative;z-index:2;padding:6px 0;margin:4px 0}
+.wire{position:relative;margin:8px 0}
+.wire .wlabel{font:500 11px/1 var(--mono);color:var(--muted);margin-bottom:6px;letter-spacing:.01em}
+.wire .wlabel.up{margin-bottom:0;margin-top:6px}
+.wire .wlabel .ret{color:var(--dim)}
+.wire .line{height:2px;background:repeating-linear-gradient(90deg,var(--line2) 0 7px,transparent 7px 13px);position:relative;border-radius:2px}
+.wire .line.sse{background:repeating-linear-gradient(90deg,rgba(56,225,211,.4) 0 7px,transparent 7px 13px)}
+.pkt{position:absolute;top:50%;left:0;width:8px;height:8px;border-radius:50%;transform:translateY(-50%);
+  background:var(--pink);box-shadow:0 0 8px var(--pink-glow)}
+.sys.live .pkt{animation:flowR 2.4s linear infinite}
+.sys.live .pkt.p2{animation-delay:1.2s}
+.pkt.sse-p{background:var(--cyan);box-shadow:0 0 8px rgba(56,225,211,.6)}
+.sys.live .pkt.sse-p{animation:flowL 2.6s linear infinite}
+.sys.live .pkt.sse-p.p2{animation-delay:.87s}
+.sys.live .pkt.sse-p.p3{animation-delay:1.74s}
+@keyframes flowR{0%{left:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+@keyframes flowL{0%{left:100%;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:0;opacity:0}}
+
+.prov-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:760px){.prov-row{grid-template-columns:1fr}}
+.prov{border:1px solid var(--line2);border-radius:14px;padding:18px;background:var(--panel2);transition:.35s}
+.prov:hover{transform:translateY(-3px)}
+.prov.g{border-color:rgba(56,225,211,.3)} .prov.c{border-color:rgba(255,46,152,.3)} .prov.x{border-color:rgba(157,123,255,.3)}
+.prov .pn{font-family:var(--display);font-weight:600;font-size:17px}
+.prov.g .pn{color:var(--cyan)} .prov.c .pn{color:var(--pink-soft)} .prov.x .pn{color:var(--violet)}
+.prov .ps{font:500 11px/1 var(--mono);color:var(--muted);margin-top:5px}
+.prov .pm{font:500 10.5px/1.3 var(--mono);color:var(--dim);margin-top:7px}
+.kbd{font:600 12px/1 var(--mono);color:var(--pink-soft);border:1px solid var(--line2);border-radius:5px;padding:3px 6px;background:var(--bg2)}
+
+@media print{
+  body{background:#fff;color:#111}
+  #prog,#dots,.scroll-hint,.scanbeam{display:none}
+  .reveal{opacity:1!important;transform:none!important}
+  .ag{opacity:1!important;transform:none!important}
+  section{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav id="dots">
+  <a href="#hero" class="on"><span>AIDEN</span></a>
+  <a href="#problem"><span>문제의식</span></a>
+  <a href="#arch"><span>파이프라인</span></a>
+  <a href="#sysarch"><span>시스템 구조</span></a>
+  <a href="#debate"><span>토론 루프</span></a>
+  <a href="#judge"><span>교차검증</span></a>
+  <a href="#diff"><span>차별화</span></a>
+  <a href="#cost"><span>비용</span></a>
+  <a href="#meta"><span>역할</span></a>
+  <a href="#road"><span>로드맵</span></a>
+  <a href="#stack"><span>스택</span></a>
+</nav>
+
+<div class="wrap">
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-grid"></div>
+  <div class="inner">
+    <div class="eyebrow reveal">AI Deliberation Engine for Newsroom</div>
+    <h1 class="h-title reveal d1"><span class="gleam">AIDEN</span></h1>
+    <div class="h-expand reveal d2">AI · <b>Deliberation</b> · Engine · for · Newsroom &nbsp;—&nbsp; 토론으로 글을 만드는 AI 편집국</div>
+    <p class="h-lead reveal d3">
+      이건 콘텐츠 <span class="h-strike">생성기</span>가 아닙니다.<br>
+      콘텐츠 제작 <em>플랫폼</em>입니다.
+    </p>
+    <p class="h-note reveal d4">운영자는 토픽 하나만 고릅니다.<br>나머지 제작 공정과 확장은 플랫폼이 맡습니다.</p>
+    <div class="scroll-hint reveal d5"><span class="ln"></span>SCROLL</div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="tag reveal">왜 만들었나</div>
+  <h2 class="sec reveal d1">정말 <span class="pk">유효한지</span><br>직접 검증하고 싶었습니다.</h2>
+  <p class="sub reveal d2">AI가 글을 쓰고 에이전트끼리 대화하는 데모는 이미 넘칩니다.<br>저는 그게 정말 유효한지 직접 확인하고 싶었고, 두 가지에 걸었습니다.</p>
+  <div class="prob-grid">
+    <div class="pcard reveal d2">
+      <div class="n">DIFFERENTIATOR 01</div>
+      <h3>믿을 수 있는 품질</h3>
+      <p>AI 글쓰기의 약점은 늘 같습니다 — 할루시네이션, 근거 없음. 결과물 뒤에 숨기는 대신, 작성·검증·반론·편집을 다른 역할로 쪼개 <b style="color:var(--text)">서로 공격하게</b> 만들었습니다. 글이 어떻게 깨지고 고쳐지는지가 그대로 보입니다.</p>
+    </div>
+    <div class="pcard reveal d3">
+      <div class="n">DIFFERENTIATOR 02</div>
+      <h3>진짜 넘길 수 있는 시스템</h3>
+      <p>데모로 끝내고 싶지 않았습니다. 어드민·프롬프트 편집·출력 이력까지 붙였습니다. 심사 기준의 <b style="color:var(--text)">"즉시 서비스 반영"</b>을 말이 아니라 동작으로 보여주는 게 목표였습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <div class="tag reveal">콘텐츠 파이프라인</div>
+  <h2 class="sec reveal d1">9개 에이전트, <span class="pk">3개의 뉴스룸</span><br>그리고 3인의 심사위원.</h2>
+  <p class="sub reveal d2">토픽 하나가 들어오면, 끝에는 바로 쓸 수 있는 HTML과 검증 과정 전체가 남습니다.<br><b>모델은 자리에 맞춰 앉혔습니다.</b></p>
+
+  <div class="arch-stage reveal d2" id="archStage">
+    <div class="scanbeam"></div>
+    <div class="flow">
+      <div class="stagebox s1">
+        <div class="sn"><span class="b">1</span><span class="label">토픽 뉴스룸</span></div>
+        <div class="agents">
+          <div class="ag" style="transition-delay:.05s"><div class="gd">Grounding</div><div class="nm"><span class="ic mG">◷</span>트렌드 정찰</div><div class="mdl">gemini-2.5-flash</div></div>
+          <div class="ag" style="transition-delay:.12s"><div class="nm"><span class="ic mG">◷</span>독자 분석</div><div class="mdl">gemini-2.5-flash</div></div>
+          <div class="ag" style="transition-delay:.19s"><div class="nm"><span class="ic mG">◷</span>편집 기획</div><div class="mdl">gemini-3.1-pro-preview</div></div>
+        </div>
+      </div>
+      <div class="conn"><svg viewBox="0 0 44 30"><path class="track" d="M2 15 H42"/><circle class="dot a" cx="2" cy="15" r="3.6"/><circle class="dot b" cx="2" cy="15" r="3.6"/><circle class="dot c" cx="2" cy="15" r="3.6"/></svg></div>
+      <div class="stagebox s2">
+        <div class="sn"><span class="b">2</span><span class="label">콘텐츠 뉴스룸 ↻</span></div>
+        <div class="agents">
+          <div class="ag" style="transition-delay:.26s"><div class="nm"><span class="ic mC">✎</span>작가</div><div class="mdl">claude-sonnet-4-6</div></div>
+          <div class="ag" style="transition-delay:.33s"><div class="gd">Grounding</div><div class="nm"><span class="ic mG">✓</span>팩트체커</div><div class="mdl">gemini-2.5-flash</div></div>
+          <div class="ag" style="transition-delay:.4s"><div class="nm"><span class="ic mG">⚡</span>악마의 대변인</div><div class="mdl">gemini-2.5-flash</div></div>
+          <div class="ag" style="transition-delay:.47s"><div class="nm"><span class="ic mC">★</span>편집국장</div><div class="mdl">claude-opus-4-7</div></div>
+        </div>
+      </div>
+      <div class="conn"><svg viewBox="0 0 44 30"><path class="track" d="M2 15 H42"/><circle class="dot a" cx="2" cy="15" r="3.6"/><circle class="dot b" cx="2" cy="15" r="3.6"/><circle class="dot c" cx="2" cy="15" r="3.6"/></svg></div>
+      <div class="stagebox s3">
+        <div class="sn"><span class="b">3</span><span class="label">인터랙티브 빌더</span></div>
+        <div class="agents">
+          <div class="ag" style="transition-delay:.54s"><div class="nm"><span class="ic mG">◇</span>포맷 설계</div><div class="mdl">gemini-2.5-pro</div></div>
+          <div class="ag" style="transition-delay:.61s"><div class="nm"><span class="ic mG">&lt;/&gt;</span>HTML 빌더</div><div class="mdl">gemini-2.5-pro</div></div>
+        </div>
+      </div>
+      <div class="conn"><svg viewBox="0 0 44 30"><path class="track" d="M2 15 H42"/><circle class="dot a" cx="2" cy="15" r="3.6"/><circle class="dot b" cx="2" cy="15" r="3.6"/><circle class="dot c" cx="2" cy="15" r="3.6"/></svg></div>
+      <div class="stagebox s4">
+        <div class="sn"><span class="b">4</span><span class="label">심사단</span></div>
+        <div class="agents">
+          <div class="ag" style="transition-delay:.68s"><div class="nm"><span class="ic mG">⚖</span>Judge Gemini</div><div class="mdl">gemini-2.5-pro</div></div>
+          <div class="ag" style="transition-delay:.75s"><div class="nm"><span class="ic mX">⚖</span>Judge GPT</div><div class="mdl">gpt-5</div></div>
+          <div class="ag" style="transition-delay:.82s"><div class="nm"><span class="ic mC">⚖</span>Judge Claude</div><div class="mdl">claude-opus-4-7</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="io">
+      <div class="iobox in-"><div class="k">Input</div><div class="v">토픽 카테고리 1개 &nbsp;<span style="color:var(--dim)">(앵글·세그먼트 자동 배정)</span></div></div>
+      <div class="iobox out"><div class="k">Output</div><div class="v">즉시 반영 HTML + 검증 트레이스 + 5축 점수</div></div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--cyan)"></i>Gemini 계열</span>
+      <span><i style="background:var(--pink)"></i>Claude 계열</span>
+      <span><i style="background:var(--violet)"></i>GPT</span>
+      <span style="color:var(--green)"><i style="background:var(--green)"></i>Google Search Grounding</span>
+    </div>
+  </div>
+  <p class="sub reveal" style="margin-top:30px">처음엔 9개 전부 Gemini였습니다. <b>작가와 편집국장만 Claude로 교체</b>했습니다 — 발화 품질과 편집 판단에서 차이가 났기 때문입니다.<br>이 교체 자체가 "어느 자리에 어느 모델이 맞나"를 실험한 결과입니다.</p>
+</section>
+
+<!-- SYSTEM ARCHITECTURE -->
+<section id="sysarch">
+  <div class="tag reveal">시스템 구조</div>
+  <h2 class="sec reveal d1">어디서 어디로,<br><span class="pk">무엇이 호출되나.</span></h2>
+  <p class="sub reveal d2">파이프라인이 "무엇을 만드나"라면, 여기는 "어떻게 도나"입니다. 프론트(Vercel)와 백엔드(Railway)가 어떻게 주고받고, 9에이전트가 어느 LLM API를 때리는지 — 실시간 트레이스는 <b>SSE로 흐릅니다.</b></p>
+
+  <div class="sys reveal d2" id="sysDiag">
+    <!-- client -->
+    <div class="layer">
+      <div class="lhead"><span class="ldot" style="background:var(--cyan)"></span>CLIENT</div>
+      <div class="box vercel">
+        <div class="bt">Vercel</div>
+        <div class="bs">Next.js 14 · App Router</div>
+        <div class="btags"><span>shadcn/ui</span><span>React Query</span><span>Recharts</span></div>
+      </div>
+    </div>
+
+    <!-- arrows client<->backend -->
+    <div class="bus">
+      <div class="wire">
+        <div class="wlabel down">POST /api/generate <span class="ret">→ session_id</span></div>
+        <div class="line"><span class="pkt"></span></div>
+      </div>
+      <div class="wire">
+        <div class="line sse"><span class="pkt sse-p"></span><span class="pkt sse-p p2"></span><span class="pkt sse-p p3"></span></div>
+        <div class="wlabel up">SSE /api/stream <span class="ret">실시간 트레이스 ◀</span></div>
+      </div>
+    </div>
+
+    <!-- backend -->
+    <div class="layer">
+      <div class="lhead"><span class="ldot" style="background:var(--pink)"></span>RAILWAY · FastAPI 백엔드</div>
+      <div class="box backend">
+        <div class="bt">RunManager <span class="bnote">asyncio 백그라운드 실행</span></div>
+        <div class="orchs">
+          <div class="orch s1">① TopicNewsroom</div>
+          <div class="orch s2">② ContentNewsroom <span class="loop">↻ 최대 3R</span></div>
+          <div class="orch s3">③ Gameifier</div>
+          <div class="orch s4">④ JudgePanel <span class="loop">asyncio.gather</span></div>
+        </div>
+        <div class="binfra">
+          <div class="inf"><span class="ic mC">⇄</span>SSE Broker <span class="bnote">pub/sub push</span></div>
+          <div class="inf"><span class="ic mG">▤</span>SQLite · outputs.db <span class="bnote">Railway Volume /data</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- arrows backend<->LLM -->
+    <div class="bus">
+      <div class="wire single">
+        <div class="wlabel down">SDK 호출 <span class="ret">→ 응답 JSON</span></div>
+        <div class="line"><span class="pkt"></span><span class="pkt p2"></span></div>
+      </div>
+    </div>
+
+    <!-- LLM providers -->
+    <div class="layer">
+      <div class="lhead"><span class="ldot" style="background:var(--violet)"></span>LLM PROVIDERS</div>
+      <div class="prov-row">
+        <div class="prov g"><div class="pn">Gemini</div><div class="ps">google-genai SDK</div><div class="pm">flash · pro · 3.1-pro</div></div>
+        <div class="prov c"><div class="pn">Claude</div><div class="ps">anthropic SDK</div><div class="pm">sonnet-4-6 · opus-4-7</div></div>
+        <div class="prov x"><div class="pn">GPT</div><div class="ps">openai SDK</div><div class="pm">gpt-5 (judge)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="sub reveal" style="margin-top:30px"><b>핵심 흐름:</b> 프론트가 <span class="kbd">/api/generate</span>로 실행을 요청하면 즉시 <span class="kbd">session_id</span>만 돌려받고, 실제 파이프라인은 백엔드에서 백그라운드로 돕니다. 각 에이전트 단계는 <b>SSE Broker</b>를 통해 프론트로 실시간 push되고, 완료된 결과만 SQLite에 영속 저장됩니다.</p>
+</section>
+
+<!-- DEBATE -->
+<section id="debate">
+  <div class="tag reveal">AIDEN의 심장</div>
+  <h2 class="sec reveal d1">에이전트들이<br><span class="pk">토론</span>하며 다듬습니다.</h2>
+  <p class="sub reveal d2">콘텐츠 뉴스룸은 단방향 생성이 아닙니다. 작가의 초안이 어떻게 공격받고 고쳐졌는지가 실시간으로 흐릅니다. <b>최대 3라운드.</b></p>
+
+  <div class="debate-wrap">
+    <div class="ring reveal d2" id="ring">
+      <svg viewBox="0 0 400 400">
+        <circle class="orbit" cx="200" cy="200" r="150"/>
+        <path class="arc" id="arc" d=""/>
+        <circle class="pulse" id="pulse" cx="200" cy="50" r="5"/>
+        <text class="center rnum" id="rnum" x="200" y="195">1</text>
+        <text class="center rlbl" x="200" y="222">ROUND</text>
+      </svg>
+      <div class="node n0" style="left:50%;top:8%"><div class="chip"><div class="role">Draft</div><div class="who">작가</div></div></div>
+      <div class="node n1" style="left:90%;top:50%"><div class="chip"><div class="role">Verify</div><div class="who">팩트체커</div></div></div>
+      <div class="node n2" style="left:50%;top:92%"><div class="chip"><div class="role">Attack</div><div class="who">악마의 대변인</div></div></div>
+      <div class="node n3" style="left:10%;top:50%"><div class="chip"><div class="role">Decide</div><div class="who">편집국장</div></div></div>
+    </div>
+
+    <div class="debate-info reveal d3">
+      <div class="step" data-s="0"><div class="t"><span class="num">01</span>작가</div><p>최신 트렌드를 반영해 초안을 작성합니다.</p></div>
+      <div class="step" data-s="1"><div class="t"><span class="num">02</span>팩트체커 <span style="font:600 9px/1 var(--mono);color:var(--green);border:1px solid rgba(74,222,128,.3);border-radius:5px;padding:3px 5px">Grounding</span></div><p>인용·수치·출처를 검증하고 본문에 주석을 답니다.</p></div>
+      <div class="step" data-s="2"><div class="t"><span class="num">03</span>악마의 대변인</div><p>논리 비약·식상함·근거 부족을 물고 늘어집니다.</p></div>
+      <div class="step" data-s="3"><div class="t"><span class="num">04</span>편집국장</div><p>비판을 수용/기각하고 통과·재작성·직접편집을 결정합니다.</p></div>
+
+      <div class="rounds">
+        <div class="rd"><div class="rl">ROUND 1</div><div class="rc">5</div><div class="rt">강하게 흔들고</div></div>
+        <div class="rd"><div class="rl">ROUND 2</div><div class="rc">3</div><div class="rt">조이고</div></div>
+        <div class="rd"><div class="rl">ROUND 3</div><div class="rc">1</div><div class="rt">수렴시킨다</div></div>
+      </div>
+      <div class="kw">3라운드까지 가도 결론이 안 나면 편집국장이 강제로 통과시킵니다. 단, 남은 약점을 <b>known_weaknesses</b>로 숨기지 않고 명시합니다 — 무한 루프도, 약점 은폐도 막는 장치입니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- JUDGE -->
+<section id="judge">
+  <div class="tag reveal">교차 검증</div>
+  <h2 class="sec reveal d1">한 회사에 채점을<br><span class="pk">맡기지 않습니다.</span></h2>
+  <p class="sub reveal d2">완성된 HTML을 Gemini·GPT·Claude 세 모델이 <b>동시에</b> 5축으로 채점합니다. 세 점수가 갈리면, 그 차이 자체가 교차검증 신호입니다.</p>
+
+  <div class="consensus reveal d2">
+    <div class="cv" id="consensus">0.0</div>
+    <div>
+      <div class="ck">종합 점수 · 3-모델 가중 평균</div>
+      <div class="cd">σ ±3.4 &nbsp;·&nbsp; 아래 점수는 시연 예시</div>
+    </div>
+  </div>
+
+  <div class="judge-grid">
+    <div class="jcard reveal d2" style="--gc:rgba(56,225,211,.5)"><div class="glow"></div><div class="jh"><div class="av mG">G</div><div><div class="jn">Judge Gemini</div><div class="jm">gemini-2.5-pro</div></div></div><div class="jscore" data-v="87.4">0.0<span class="sm">/100</span></div><div class="jdelta">평균 대비 +0.5</div></div>
+    <div class="jcard reveal d3" style="--gc:rgba(157,123,255,.5)"><div class="glow"></div><div class="jh"><div class="av mX">⌬</div><div><div class="jn">Judge GPT</div><div class="jm">gpt-5</div></div></div><div class="jscore" data-v="82.1">0.0<span class="sm">/100</span></div><div class="jdelta">평균 대비 −4.8</div></div>
+    <div class="jcard reveal d4" style="--gc:rgba(255,46,152,.5)"><div class="glow"></div><div class="jh"><div class="av mC">✳</div><div><div class="jn">Judge Claude</div><div class="jm">claude-opus-4-7</div></div></div><div class="jscore" data-v="90.3">0.0<span class="sm">/100</span></div><div class="jdelta">평균 대비 +3.4</div></div>
+  </div>
+
+  <div class="axes reveal d2">
+    <h4>5축 평가 · 가중치 합 100</h4>
+    <div class="axis"><span class="al">콘텐츠 품질</span><div class="ab"><div class="af" style="--w:90%"></div></div><span class="aw">25</span></div>
+    <div class="axis"><span class="al">타깃 적합성</span><div class="ab"><div class="af" style="--w:80%"></div></div><span class="aw">20</span></div>
+    <div class="axis"><span class="al">톤 진정성</span><div class="ab"><div class="af" style="--w:80%"></div></div><span class="aw">20</span></div>
+    <div class="axis"><span class="al">출처 신뢰</span><div class="ab"><div class="af" style="--w:80%"></div></div><span class="aw">20</span></div>
+    <div class="axis"><span class="al">인터랙티브</span><div class="ab"><div class="af" style="--w:60%"></div></div><span class="aw">15</span></div>
+  </div>
+</section>
+
+<!-- DIFF -->
+<section id="diff">
+  <div class="tag reveal">차별화</div>
+  <h2 class="sec reveal d1">왜 <span class="pk">이 구조</span>인가.</h2>
+  <div class="diff-grid">
+    <div class="dcard reveal d2"><div class="di">01</div><h3>검증의 가시화</h3><p>작성·검증·반론·편집을 분리하고 토론 과정을 실시간 노출합니다. "결과만 툭"이 아니라 "스스로 의심하고 고치는 과정"을 보여줍니다.</p></div>
+    <div class="dcard reveal d3"><div class="di">02</div><h3>멀티모델 교차검증</h3><p>심사단이 단일 벤더가 아닌 3사 동시 채점. 역할별 최적 모델 배치로 단일 모델 편향을 회피합니다.</p></div>
+    <div class="dcard reveal d4"><div class="di">03</div><h3>운영 가능성</h3><p>데모가 아니라 어드민·프롬프트 편집·출력 이력까지. 코드 없이 디벨롭할 수 있는 확장 슬롯을 설계했습니다.</p></div>
+  </div>
+  <p class="note reveal">"여러 AI가 토론하는 게 혼자 하는 것보다 낫지 않다"는 연구가 있습니다. 다만 그건 <em>정답 맞히기</em>가 대상입니다. <em>콘텐츠 생산</em>이라는 다른 판에서도 그런지, 직접 확인하고 싶었습니다.</p>
+</section>
+
+<!-- COST -->
+<section id="cost">
+  <div class="tag reveal">비용</div>
+  <h2 class="sec reveal d1">1건에 <span class="pk">약 500원.</span></h2>
+  <div class="cost-wrap">
+    <div class="reveal d2">
+      <div class="cost-big">₩500<span class="u"> 내외</span></div>
+      <div class="cost-sub">현재 모델 구성 · 테스트 기준 추정<br>(토론 라운드 수에 따라 변동)</div>
+    </div>
+    <div class="reveal d3">
+      <p class="sub" style="margin-top:0;margin-bottom:26px">비용 대부분은 편집국장·심사단에 둔 <b>프리미엄 모델</b>에서 나옵니다. 의도한 설계입니다. 1건당 LLM 호출 수:</p>
+      <div class="calls">
+        <div class="callrow"><span class="cl">1 라운드</span><div class="cbar"><div class="cfill" style="--w:60%"></div></div><span class="cv">12</span></div>
+        <div class="callrow"><span class="cl">2 라운드</span><div class="cbar"><div class="cfill" style="--w:80%"></div></div><span class="cv">16</span></div>
+        <div class="callrow"><span class="cl">3 라운드</span><div class="cbar"><div class="cfill" style="--w:100%"></div></div><span class="cv">20</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- META -->
+<section id="meta">
+  <div class="tag reveal">내 역할 / AI의 역할</div>
+  <h2 class="sec reveal d1">한 줄도 직접 안 짰지만,<br><span class="pk">전부 제가 설계했습니다.</span></h2>
+  <p class="sub reveal d2" style="font-family:var(--display);font-weight:500;color:#dcdce6;font-size:clamp(16px,2.2vw,21px)">코드는 위임했습니다. 설계는 위임하지 않았습니다.</p>
+  <p class="sub reveal d2">무엇을 만들지, 어떤 검증을 거칠지, 어느 노드에 어느 모델을 쓸지 — 이 결정들의 연쇄가 곧 이 플랫폼입니다.</p>
+  <div class="meta-split reveal d2">
+    <div class="ml">
+      <h4>내가 한 것</h4>
+      <ul><li>아키텍처 설계</li><li>검증 루프 정의</li><li>역할별 모델 배치 판단</li><li>운영 의사결정</li><li>GitHub · 서버 · 배포 · 테스트</li></ul>
+    </div>
+    <div class="mr">
+      <h4>AI가 한 것</h4>
+      <ul><li>코드 구현 (Claude / Claude Code)</li><li>9에이전트 + 3심사단 로직</li><li>프론트엔드 · 백엔드 · 파이프라인</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="road">
+  <div class="tag reveal">운영 이관 & 로드맵</div>
+  <h2 class="sec reveal d1">한 번 만든 데모가 아니라<br><span class="pk">키울 수 있는 베이스.</span></h2>
+  <p class="sub reveal d2">콘텐츠 제작자나 기획자가 코드를 안 만져도, 정해진 방향대로 디벨롭할 수 있게 자리를 잡아뒀습니다.</p>
+  <div class="road">
+    <div class="rcard reveal d2"><div class="rt2">지금 열려있음</div><ul><li>CTA 링크·이미지 요구사항 주입 구조</li><li>참조 정보 주입 슬롯</li><li>프롬프트 편집·버전관리·롤백</li><li>발행 이력 기반 토픽 회피 (백엔드)</li></ul></div>
+    <div class="rcard reveal d3"><div class="rt2">콘텐츠 · 스타일</div><ul><li>서비스 CSS 적용본 검증</li><li>브랜드 색채 강화 (스쿼드 협의)</li><li>앱 내 랜딩·이벤트 연결</li><li>게이미피케이션 샘플 확대</li></ul></div>
+    <div class="rcard reveal d4"><div class="rt2">참조정보 · RAG</div><ul><li>이벤트·캠페인 정보 주입 UI</li><li>참조 문서 수동 등록</li><li>임베딩 기반 중복 탐지</li><li>문서 검색 RAG 전환</li></ul></div>
+    <div class="rcard reveal d5"><div class="rt2">운영 · 신뢰</div><ul><li>프롬프트·키·이력 영속화</li><li>토큰 실측 계측 연결</li><li>출처 품질 필터</li><li>인증·감사로그·신뢰도 게이트</li></ul></div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section id="stack">
+  <div class="tag reveal">기술 스택</div>
+  <h2 class="sec reveal d1">Python에서<br><span class="pk">Railway·Vercel</span>까지.</h2>
+  <div class="stack">
+    <div class="chip2 reveal">Python · <b>FastAPI</b></div>
+    <div class="chip2 reveal">asyncio</div>
+    <div class="chip2 reveal">SSE <b>자체 구현</b></div>
+    <div class="chip2 reveal">SQLite</div>
+    <div class="chip2 reveal">google-genai</div>
+    <div class="chip2 reveal">anthropic</div>
+    <div class="chip2 reveal">openai</div>
+    <div class="chip2 reveal"><b>Next.js 14</b></div>
+    <div class="chip2 reveal">shadcn/ui</div>
+    <div class="chip2 reveal">Recharts</div>
+    <div class="chip2 reveal">React Query</div>
+    <div class="chip2 reveal">Tailwind · 다크모드</div>
+    <div class="chip2 reveal"><b>Railway</b></div>
+    <div class="chip2 reveal"><b>Vercel</b></div>
+    <div class="chip2 reveal">Git · LF EOL</div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-big"><span class="gleam">AIDEN</span></div>
+  <div class="foot-meta">
+    AI Deliberation Engine for Newsroom<br>
+    9 Agents · 3 Newsrooms · 3 Judges · 5-Axis Cross-Validation<br>
+    설계는 사람이, 구현은 AI가. — 소스 코드는 공용 계정 GitHub에서 이관 가능.
+  </div>
+</footer>
+
+</div>
+
+<script>
+const prog=document.getElementById('prog');
+const dots=[...document.querySelectorAll('#dots a')];
+const secs=dots.map(d=>document.querySelector(d.getAttribute('href')));
+function onScroll(){
+  const h=document.documentElement;
+  prog.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=0;
+  secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<=window.innerHeight*0.4)cur=i;});
+  dots.forEach((d,i)=>d.classList.toggle('on',i===cur));
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+const io=new IntersectionObserver((es)=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');
+    if(e.target.id==='archStage')e.target.classList.add('live');
+    if(e.target.id==='sysDiag')e.target.classList.add('live');}});
+},{threshold:.18});
+document.querySelectorAll('.reveal,.pcard,.axis,.callrow,#archStage,#sysDiag').forEach(el=>io.observe(el));
+
+/* debate ring */
+const ringNodes=[...document.querySelectorAll('#ring .node')];
+const steps=[...document.querySelectorAll('.debate-info .step')];
+const rnum=document.getElementById('rnum');
+const arc=document.getElementById('arc');
+const pulse=document.getElementById('pulse');
+const cx=200,cy=200,r=150;
+const angs=[-90,0,90,180];
+function pt(a){const rad=a*Math.PI/180;return[cx+r*Math.cos(rad),cy+r*Math.sin(rad)];}
+let active=0, round=1;
+function arcPath(i){
+  const a0=angs[i]; let a1=angs[(i+1)%4]; if(a1<a0)a1+=360;
+  const[x0,y0]=pt(a0),[x1,y1]=pt(a1); const large=(a1-a0)>180?1:0;
+  return `M${x0} ${y0} A${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+}
+function tick(){
+  ringNodes.forEach((n,i)=>n.classList.toggle('active',i===active));
+  steps.forEach((s,i)=>s.classList.toggle('on',i===active));
+  arc.setAttribute('d',arcPath(active));
+  const[px,py]=pt(angs[active]); pulse.setAttribute('cx',px); pulse.setAttribute('cy',py);
+  active=(active+1)%4;
+  if(active===0){round=round%3+1;rnum.textContent=round;}
+}
+let debTimer=null;
+const ringIO=new IntersectionObserver((es)=>{
+  es.forEach(e=>{
+    if(e.isIntersecting&&!debTimer){tick();debTimer=setInterval(tick,1400);}
+    else if(!e.isIntersecting&&debTimer){clearInterval(debTimer);debTimer=null;}
+  });
+},{threshold:.3});
+ringIO.observe(document.getElementById('ring'));
+
+/* judge score count-up (1 decimal) + consensus */
+function countTo(el,full,dec){
+  let v=0; const step=full/30;
+  const t=setInterval(()=>{
+    v+=step; if(v>=full){v=full;clearInterval(t);}
+    el.firstChild.textContent=v.toFixed(dec);
+  },26);
+}
+const jIO=new IntersectionObserver((es)=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      const el=e.target; countTo(el,parseFloat(el.dataset.v),1); jIO.unobserve(el);
+    }
+  });
+},{threshold:.5});
+document.querySelectorAll('.jscore').forEach(s=>jIO.observe(s));
+
+const cons=document.getElementById('consensus');
+const cIO=new IntersectionObserver((es)=>{
+  es.forEach(e=>{if(e.isIntersecting){countTo(cons,86.6,1);cIO.unobserve(cons);}});
+},{threshold:.6});
+cIO.observe(cons);
+</script>
+</body>
+</html>
