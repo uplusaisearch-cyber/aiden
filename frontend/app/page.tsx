@@ -43,9 +43,11 @@ export default function HomePage() {
   // 데이터 소스: outputs.db (영속). MOCK fallback 없음 — 빈 DB 는 빈 상태로 표시.
   // placeholderData = (prev) => prev 로 재요청 중 이전 데이터 유지 → 새로고침 외 깜빡임 0.
   // 첫 진입 (prev=undefined) 은 isLoading 으로 스켈레톤 노출, 데이터 도착 시 카드로 전환.
+  // "더보기" 클릭마다 limit 을 +6 하여 같은 queryKey 로 재요청 (offset=0 유지) — 데이터 규모상 OK.
+  const [recentLimit, setRecentLimit] = useState(6);
   const recentRunsQuery = useQuery({
-    queryKey: ["outputs", "main-cards"],
-    queryFn: () => fetchOutputs(6),
+    queryKey: ["outputs", "main-cards", recentLimit],
+    queryFn: () => fetchOutputs(recentLimit),
     placeholderData: (prev) => prev,
   });
 
@@ -88,6 +90,8 @@ export default function HomePage() {
 
   const runsForUI: MockRecentRun[] =
     recentRunsQuery.data?.outputs?.map(outputToMock) ?? [];
+  const recentTotal = recentRunsQuery.data?.total ?? 0;
+  const hasMore = runsForUI.length < recentTotal;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 pb-16 sm:px-6">
@@ -154,6 +158,9 @@ export default function HomePage() {
               ? recentRunsQuery.error.message
               : undefined
           }
+          hasMore={hasMore}
+          onLoadMore={() => setRecentLimit((n) => n + 6)}
+          isLoadingMore={recentRunsQuery.isFetching && !recentRunsQuery.isLoading}
         />
       </section>
     </main>

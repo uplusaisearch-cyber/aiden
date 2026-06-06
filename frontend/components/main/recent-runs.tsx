@@ -13,6 +13,12 @@ interface Props {
   isLoading?: boolean;
   isError?: boolean;
   errorMessage?: string;
+  /** 추가 로드 가능 여부 — outputs.db total > 현재 노출 개수 일 때 true. */
+  hasMore?: boolean;
+  /** 더보기 클릭 시 limit 을 +6 (page.tsx 가 state 보유). */
+  onLoadMore?: () => void;
+  /** 더보기 클릭 후 재요청 중 (placeholderData 가 이전 데이터 유지 — 버튼 라벨만 변경). */
+  isLoadingMore?: boolean;
 }
 
 function scoreColor(weighted: number) {
@@ -46,7 +52,15 @@ function SkeletonGrid() {
   );
 }
 
-export function RecentRuns({ runs, isLoading, isError, errorMessage }: Props) {
+export function RecentRuns({
+  runs,
+  isLoading,
+  isError,
+  errorMessage,
+  hasMore,
+  onLoadMore,
+  isLoadingMore,
+}: Props) {
   const hasData = runs.length > 0;
 
   return (
@@ -59,7 +73,7 @@ export function RecentRuns({ runs, isLoading, isError, errorMessage }: Props) {
           href="/admin/runs"
           className="text-xs text-text-secondary transition hover:text-accent-pink sm:text-sm"
         >
-          전체 보기 →
+          저장된 출력 히스토리 →
         </Link>
       </div>
 
@@ -67,7 +81,7 @@ export function RecentRuns({ runs, isLoading, isError, errorMessage }: Props) {
           placeholderData 로 재요청 중에도 이전 데이터가 유지되면 깜빡임 없이 카드 노출. */}
       {hasData ? (
         <div className="grid gap-3 sm:grid-cols-3">
-          {runs.slice(0, 6).map((run, idx) => {
+          {runs.map((run, idx) => {
             const sv = statusVariant(run.status);
             return (
               <motion.div
@@ -77,7 +91,7 @@ export function RecentRuns({ runs, isLoading, isError, errorMessage }: Props) {
                 transition={{ delay: idx * 0.04 }}
               >
                 <Link
-                  href={`/admin/runs?preview=${encodeURIComponent(run.sessionId)}`}
+                  href={`/run/${encodeURIComponent(run.sessionId)}`}
                   className="group block rounded-xl border border-border-subtle bg-bg-elevated p-4 transition hover:-translate-y-0.5 hover:border-border-strong"
                 >
                   <div className="mb-2 flex items-center gap-2">
@@ -132,6 +146,23 @@ export function RecentRuns({ runs, isLoading, isError, errorMessage }: Props) {
         <p className="font-korean text-sm text-text-muted">
           아직 생성된 콘텐츠가 없습니다.
         </p>
+      )}
+
+      {hasData && hasMore && onLoadMore && (
+        <div className="mt-5 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="rounded-full border px-5 py-2 font-korean text-xs transition disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              borderColor: "var(--accent-pink)",
+              color: "var(--accent-pink)",
+            }}
+          >
+            {isLoadingMore ? "불러오는 중…" : "더보기 +6"}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -3,8 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { useRunStream } from "@/hooks/useRunStream";
-import { type AgentModelsResponse, fetchAgentModels } from "@/lib/api";
+import {
+  type AgentModelsResponse,
+  fetchAgentModels,
+  fetchOutputDetail,
+} from "@/lib/api";
 import {
   fetchPersonas,
   type PersonasData,
@@ -27,6 +32,15 @@ export default function RunPage() {
     null,
   );
 
+  // outputs.db (영속) 병렬 조회. 라이브 진행 중인 run 은 upsert 전이라 404 반환 →
+  // fallback 게이트가 자동으로 닫힌다. 즉 라이브 run 절대 fallback 모드 진입 X.
+  const outputFallbackQ = useQuery({
+    queryKey: ["output-fallback", runId],
+    queryFn: () => fetchOutputDetail(runId),
+    retry: false,
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
     fetchPersonas()
       .then(setPersonas)
@@ -40,6 +54,15 @@ export default function RunPage() {
       });
   }, []);
 
+  // Fallback 모드 판정. outputs.db hit 이 핵심 게이트 — upsert 가 종료 시점에만 일어나므로
+  // 라이브 run 은 항상 outputs.db miss → fallback 무발동 보장.
+  const outputAvailable =
+    outputFallbackQ.isSuccess && !!outputFallbackQ.data?.final_html;
+  const shouldFallback =
+    outputAvailable &&
+    run.messages.length === 0 &&
+    (run.status === "completed" || run.fetchNotFound);
+
   // 파생 상태: completedAgents, iterByAgent
   const { completedAgents, iterByAgent } = useMemo(() => {
     const done = new Set<string>();
@@ -52,6 +75,64 @@ export default function RunPage() {
     });
     return { completedAgents: done, iterByAgent: iter };
   }, [run.messages]);
+
+  // --- Fallback 우선 분기 ---
+  // runs/ 디스크가 만료된(또는 처음부터 없는) 완료 run 에 대해 outputs.db final_html 만이라도 표시.
+  // 라이브 run 은 outputs.db miss → 이 분기 진입 X. personas 로딩과 무관하게 즉시 렌더.
+  if (shouldFallback && outputFallbackQ.data) {
+    const detail = outputFallbackQ.data;
+    return (
+      <main className="mx-auto min-h-screen w-full max-w-5xl p-4">
+        <div className="mb-3 flex items-center">
+          <Link
+            href="/"
+            className="font-korean text-[11px] text-text-secondary hover:text-accent-pink"
+          >
+            ← 메인
+          </Link>
+        </div>
+
+        <div
+          className="mb-4 rounded-lg border p-4"
+          style={{
+            borderColor: "var(--state-warning)",
+            background: "var(--bg-elevated)",
+          }}
+        >
+          <h1 className="font-korean text-base font-bold text-text-primary sm:text-lg">
+            📦 {detail.topic ?? "(제목 없음)"}
+          </h1>
+          <p
+            className="mt-1 font-korean text-xs"
+            style={{ color: "var(--state-warning)" }}
+          >
+            ⚠️ 이 run 의 대화 기록은 만료되어 최종 결과물만 표시됩니다.
+          </p>
+          <p className="mt-0.5 font-mono text-[10px] text-text-muted">
+            run: {runId.slice(0, 24)}…
+            {detail.created_at ? ` · ${detail.created_at.slice(0, 16)}` : ""}
+            {detail.weighted_score != null
+              ? ` · ${detail.weighted_score.toFixed(1)} / 100`
+              : ""}
+          </p>
+        </div>
+
+        <div
+          className="overflow-hidden rounded-xl bg-white shadow-2xl"
+          style={{ border: "1px solid var(--border-strong)" }}
+        >
+          <iframe
+            srcDoc={detail.final_html}
+            className="h-[80vh] w-full"
+            // srcDoc 은 별도 origin 으로 취급되어 allow-same-origin 없어도 인터랙티브
+            // (CHECKLIST/CALCULATOR inline script) 동작. admin/runs preview 와 동일 정책.
+            sandbox="allow-scripts"
+            title={`Output fallback: ${runId}`}
+          />
+        </div>
+      </main>
+    );
+  }
 
   // --- 에러 / 로딩 ---
   if (personasErr) {

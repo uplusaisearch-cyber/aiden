@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { API_BASE, fetchFinalHtmlMeta } from "@/lib/api";
+import { API_BASE, fetchFinalHtmlMeta, fetchOutputDetail } from "@/lib/api";
 import type { FinalHtmlMeta } from "@/types/judge";
 
 interface Props {
@@ -80,7 +80,7 @@ function NotAvailable({ message, polling }: { message?: string; polling?: boolea
 }
 
 export function FinalHtmlPreview({ runId }: Props) {
-  const { data, isLoading, error } = useQuery<FinalHtmlMeta>({
+  const metaQ = useQuery<FinalHtmlMeta>({
     queryKey: ["final-html", runId],
     queryFn: () => fetchFinalHtmlMeta(runId),
     retry: false,
@@ -91,18 +91,48 @@ export function FinalHtmlPreview({ runId }: Props) {
     staleTime: 60_000,
   });
 
-  if (isLoading) return <Skeleton />;
-  if (error) {
-    return (
-      <NotAvailable
-        message={error instanceof Error ? error.message : "메타 조회 실패"}
-      />
-    );
-  }
-  if (!data?.available || !data.url) return <NotAvailable polling />;
+  // 디스크 final_output.html 부재 (또는 session_exists false) 시 outputs.db 영속본으로 폴백.
+  // metaQ 가 available:true 되면 enabled=false 로 자동 정지. 라이브 run 은 outputs.db 가
+  // 완료 전엔 miss 이므로 자연스럽게 "준비 중" UI 가 유지된다.
+  const outputsQ = useQuery({
+    queryKey: ["output-fallback", runId],
+    queryFn: () => fetchOutputDetail(runId),
+    retry: false,
+    enabled: !metaQ.data?.available,
+    staleTime: 60_000,
+  });
 
-  const src = `${API_BASE}${data.url}`;
-  const sizeKB = data.size_bytes != null ? (data.size_bytes / 1024).toFixed(1) : "?";
+  if (metaQ.isLoading && outputsQ.isLoading) return <Skeleton />;
+
+  // 1차: 디스크 final_output.html
+  if (metaQ.data?.available && metaQ.data.url) {
+    return <DiskPreview url={metaQ.data.url} sizeBytes={metaQ.data.size_bytes} />;
+  }
+
+  // 2차: outputs.db 영속본 (디스크 wipe 또는 저장 누락 케이스 — PROGRESS L240 완화).
+  if (outputsQ.data?.final_html) {
+    return <FallbackPreview html={outputsQ.data.final_html} runId={runId} />;
+  }
+
+  // 둘 다 없음: 라이브 폴링 상태 또는 진짜 부재.
+  // metaQ error + outputsQ error 면 메시지 합쳐 노출 — 그 외엔 폴링 UI.
+  const metaErr = metaQ.error instanceof Error ? metaQ.error.message : null;
+  const outErr = outputsQ.error instanceof Error ? outputsQ.error.message : null;
+  if (metaErr && outErr) {
+    return <NotAvailable message={`${metaErr} / outputs.db: ${outErr}`} />;
+  }
+  return <NotAvailable polling />;
+}
+
+function DiskPreview({
+  url,
+  sizeBytes,
+}: {
+  url: string;
+  sizeBytes: number | null;
+}) {
+  const src = `${API_BASE}${url}`;
+  const sizeKB = sizeBytes != null ? (sizeBytes / 1024).toFixed(1) : "?";
 
   return (
     <div className="p-6 animate-in fade-in duration-500">
@@ -147,6 +177,61 @@ export function FinalHtmlPreview({ runId }: Props) {
           // backend StaticFiles 가 같은 origin (NEXT_PUBLIC_API_BASE) 으로 서빙 → allow-same-origin 안전.
           sandbox="allow-scripts allow-same-origin"
           title="Final content preview"
+        />
+      </div>
+    </div>
+  );
+}
+
+function FallbackPreview({ html, runId }: { html: string; runId: string }) {
+  const sizeKB = (new Blob([html]).size / 1024).toFixed(1);
+  return (
+    <div className="p-6 animate-in fade-in duration-500">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2
+            className="text-2xl font-bold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            최종 콘텐츠
+            <span
+              className="ml-2 align-middle text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: "var(--state-warning)" }}
+              title="디스크 final_output.html 부재 — outputs.db 영속본으로 폴백"
+            >
+              영속본
+            </span>
+          </h2>
+          <p
+            className="mt-1 text-xs tabular-nums"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {sizeKB} KB · outputs.db
+          </p>
+        </div>
+        <a
+          href={`${API_BASE}/api/outputs/${runId}/download`}
+          download
+          className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors hover:bg-white/10"
+          style={{
+            color: "var(--text-primary)",
+            border: "1px solid var(--border-strong)",
+          }}
+        >
+          다운로드 ↓
+        </a>
+      </header>
+      <div
+        className="overflow-hidden rounded-xl bg-white shadow-2xl"
+        style={{ border: "1px solid var(--border-strong)" }}
+      >
+        <iframe
+          srcDoc={html}
+          className="h-[800px] w-full"
+          // srcDoc 은 별도 origin 으로 취급되어 allow-same-origin 없어도 인터랙티브
+          // (CHECKLIST/CALCULATOR inline script) 동작 — admin/runs preview 와 동일.
+          sandbox="allow-scripts"
+          title="Final content fallback preview"
         />
       </div>
     </div>

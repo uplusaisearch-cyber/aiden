@@ -53,6 +53,9 @@ export interface RunState {
   category: string | null;
   /** 선정 조합. 4 필드 중 하나라도 비면 null (과거 run / selector 폴백). */
   planning: PlanningMeta | null;
+  /** GET /api/runs/{id} 404 시 true (runs/ 디스크 부재). page 가 outputs.db fallback 판정에 사용.
+   *  라이브 race 보호를 위해 이 경우에도 SSE subscribe 는 시도한다 — 분기 결정은 page 가. */
+  fetchNotFound: boolean;
 }
 
 const INITIAL: RunState = {
@@ -69,6 +72,7 @@ const INITIAL: RunState = {
   isHistorical: false,
   category: null,
   planning: null,
+  fetchNotFound: false,
 };
 
 /** 4 필드 모두 truthy 일 때만 PlanningMeta, 아니면 null. pure — 외부 mutate 없음. */
@@ -261,6 +265,8 @@ export function useRunStream(runId: string): RunState {
         if (cancelled) return;
         // 404 등 fetch 실패 — 신규 라이브 run 가능성 → SSE 시도
         // (실패 원인이 진짜 네트워크 에러면 SSE 도 실패할 텐데, 그건 onError 에서 잡힘)
+        // fetchNotFound 플래그를 켜서 page 가 outputs.db fallback 여부 판정할 수 있게 한다.
+        setState((s) => ({ ...s, fetchNotFound: true }));
         subscribeLive(null);
       }
     })();
