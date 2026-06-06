@@ -156,7 +156,10 @@ class AnthropicAgentClient:
             system_prompt: 에이전트 system prompt (PromptLoader 로 로드된).
             user_input: 에이전트 입력 dict.
             use_grounding: Anthropic 미지원 — True 면 warning 만 남기고 무시.
-            temperature: 생성 temperature.
+            temperature: GeminiClient 호환 시그니처용. **SDK 에는 전달하지 않음** —
+                claude-opus-4-7 등 신모델이 temperature 를 deprecated 처리하므로
+                옵션 A (모든 호출에서 미전달, SDK 디폴트 사용) 적용. top_p/top_k 도
+                wrapper 가 애초에 SDK 에 전달하지 않으므로 변경 불필요.
 
         Returns:
             파싱된 JSON dict.
@@ -165,6 +168,8 @@ class AnthropicAgentClient:
             ValueError: JSON 파싱 실패 (재시도 X).
             RuntimeError: 재시도 모두 실패.
         """
+        _ = temperature  # 인자 수신만, SDK 미전달 (deprecation 회피)
+
         if use_grounding:
             logger.warning(
                 "AnthropicAgentClient: use_grounding=True 는 미지원 (Claude 는 google_search 없음). "
@@ -187,7 +192,6 @@ class AnthropicAgentClient:
                         model_name=model_name,
                         system=effective_system,
                         user_message=user_message,
-                        temperature=temperature,
                     )
                     cleaned = self._strip_code_fence(raw)
                     parsed = self._parse_json(cleaned)
@@ -249,16 +253,19 @@ class AnthropicAgentClient:
         model_name: str,
         system: str,
         user_message: str,
-        temperature: float,
     ) -> str:
-        """단일 모델 1회 호출. 재시도 없음."""
+        """단일 모델 1회 호출. 재시도 없음.
+
+        sampling 인자 (temperature/top_p/top_k) 는 SDK 에 전달하지 않음 — claude-opus-4-7
+        등 신모델이 temperature 를 deprecated 처리. SDK 디폴트 사용으로 미래호환 확보.
+        top_p/top_k 는 wrapper 가 애초에 미전달이라 변경 불필요.
+        """
         from anthropic import Anthropic
 
         client = Anthropic(api_key=self.api_key)
         response = client.messages.create(
             model=model_name,
             max_tokens=4096,
-            temperature=temperature,
             system=system,
             messages=[{"role": "user", "content": user_message}],
         )
