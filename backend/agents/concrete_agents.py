@@ -7,14 +7,40 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
+
+try:
+    from zoneinfo import ZoneInfo
+    _KST = ZoneInfo("Asia/Seoul")
+except Exception:  # noqa: BLE001 — tzdata 미설치 (Windows dev 등) fallback
+    # KST 는 DST 없는 고정 UTC+9 → fixed offset 으로 동등 처리.
+    _KST = timezone(timedelta(hours=9), name="KST")
 
 from backend.core.base_agent import PromptLoader
 from backend.llm.anthropic_agent_client import AnthropicAgentClient
 from backend.llm.gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------
+# 런타임 날짜 헤더 prepend (2026-06-06)
+# ---------------------------------------------------------------------
+# 어드민이 prompt 의 `{today}` 같은 placeholder 를 삭제해도 주입이 사라지지 않도록
+# 코드가 system_prompt 앞에 강제 prepend. DB/파일 원본은 절대 수정하지 않고
+# 런타임 조립 시점에만 결합. Asia/Seoul 고정 (Railway UTC 대비 하루 어긋남 방지).
+# 매 호출 시 datetime.now 평가 — 상수 캐싱 금지 (redeploy 전까지 날짜 고정 방지).
+def build_system_prompt(agent_prompt: str) -> str:
+    today = datetime.now(_KST).strftime("%Y-%m-%d")
+    header = (
+        f"[런타임 정보] 오늘 날짜: {today}\n"
+        f"- 이벤트 개최·적용 기간은 미래 날짜로 정확히 표기할 것.\n"
+        f"- 인용하는 기사·통계의 발행 시점은 오늘({today}) 이전이어야 함. "
+        f"미래 발행일 출처는 환각이므로 인용 금지.\n\n"
+    )
+    return header + (agent_prompt or "")
 
 # 모든 Gemini 에이전트에 부착되는 안전 폴백. 503/429/빈 응답 시 강등.
 _FALLBACK_MODEL = "gemini-2.5-flash-lite"
@@ -98,12 +124,13 @@ def make_agent_callable(
     """
     loader = prompt_loader or PromptLoader()
     # 정적 모드: 파일을 한 번만 읽어 캐시.
+    # 단, build_system_prompt 는 _call 안에서 호출 — 매 호출마다 datetime.now 평가 필요.
     if dynamic_vars_fn is None:
         system_prompt = loader.load(prompt_filename)
 
         def _call(input_data: dict) -> dict:
             return llm_client.call(
-                system_prompt=system_prompt,
+                system_prompt=build_system_prompt(system_prompt),
                 user_input=input_data,
                 use_grounding=use_grounding,
             )
@@ -123,7 +150,7 @@ def make_agent_callable(
             extra = {}
         system_prompt = loader.substitute(raw, extra_vars=extra)
         return llm_client.call(
-            system_prompt=system_prompt,
+            system_prompt=build_system_prompt(system_prompt),
             user_input=input_data,
             use_grounding=use_grounding,
         )
