@@ -5,9 +5,16 @@
 
 | 항목 | 값 |
 |---|---|
-| **마지막 업데이트** | 2026-06-06 **B4-S2 Writer/Editor Anthropic 전환** (Sonnet/Opus) + opus-4-7 temperature deprecation fix |
-| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** + 메인 카드 MOCK 제거 **1/1** + 모델 라우팅 **1/1** (B4-S1) + Editor 반론 반영 보강 **1/1** (A+B+D) + Judge Panel session-missing 흡수 **1/1** + B4-S2 토픽×angle×SEG **1/1** (C1~C4) + RunManager 절대경로 fix **1/1** + B4-S2 후속 수동 override 모달 **1/1** + dev:fresh 스크립트 **1/1** + B4-S2 Writer/Editor Anthropic **1/1** (Sonnet+Opus, P0 fix 포함) |
-| **현재 Phase** | Phase 1~5 + 영속화 검증 + 모델 라우팅 + Editor 반론 반영 보강 + B4-S2 토픽×angle×SEG (자동 회전 + 수동 override) + Writer Sonnet / Editor Opus 까지 완료. **마감 2026-06-08** 잔여: (a) 발표/결선 PT 자료(별도 채팅), (b) 운영 종단 회귀(Vercel/Railway 최신 커밋 반영 후 1 run), (c) 여유 시 Format Architect 인터랙티브 강화 |
+| **마지막 업데이트** | 2026-06-06 **런타임 날짜 헤더 prepend** (`build_system_prompt` 헬퍼, 미래 발행일 출처 환각 방지) |
+| **전체 진행률** | **100.0%** 본구현 (57/57) + 마감 후속 1차 **7/7** + 폴리싱 2차 **1/1** + 영속화 **1/1** + 메인 카드 MOCK 제거 **1/1** + 모델 라우팅 **1/1** (B4-S1) + Editor 반론 반영 보강 **1/1** (A+B+D) + Judge Panel session-missing 흡수 **1/1** + B4-S2 토픽×angle×SEG **1/1** (C1~C4) + RunManager 절대경로 fix **1/1** + B4-S2 후속 수동 override 모달 **1/1** + dev:fresh 스크립트 **1/1** + B4-S2 Writer/Editor Anthropic **1/1** (Sonnet+Opus, P0 fix 포함) + 런타임 날짜 prepend **1/1** (timeliness_trust 환각 방지) |
+| **현재 Phase** | Phase 1~5 + 영속화 검증 + 모델 라우팅 + Editor 반론 반영 보강 + B4-S2 토픽×angle×SEG (자동 회전 + 수동 override) + Writer Sonnet / Editor Opus + 런타임 날짜 prepend 까지 완료. **마감 2026-06-08** 잔여: (a) 발표/결선 PT 자료(별도 채팅), (b) 운영 종단 회귀(Vercel/Railway 최신 커밋 반영 후 1 run), (c) 여유 시 Format Architect 인터랙티브 강화 |
+
+### 2026-06-06 런타임 날짜 헤더 prepend (commit `5a53d68`)
+
+- 문제: 9 newsroom 에이전트가 미래 발행일 출처를 환각 인용 → 저지 패널 `timeliness_trust` 감점. 어드민이 prompt 의 `{today}` placeholder 를 삭제하면 주입이 조용히 실패할 수 있음.
+- 해결: `backend/agents/concrete_agents.py` 에 `build_system_prompt(agent_prompt)` 헬퍼 신규. `make_agent_callable` 의 정적/동적 두 `_call` 경로 모두에서 LLM 호출 직전에 system_prompt 앞에 `[런타임 정보] 오늘 날짜: YYYY-MM-DD` 헤더 강제 prepend. timezone=Asia/Seoul 고정 (Windows dev tzdata 미설치 시 UTC+9 fixed offset fallback). 매 호출 시 datetime.now 평가 — 상수 캐싱 없음.
+- 어드민 영향: 없음. DB/파일 원본은 절대 수정 안 함 (런타임 조립 시점에만 결합). GET/PUT/restore/rollback 모두 raw 파일 read/write 라 헤더 미혼입.
+- 회귀 점검 PASS: 헬퍼 단독, make_agent_callable 정적(writer)/동적(planner+override), 어드민 GET raw 일치, 9 agents build_all_agents smoke, test_planner_injection 5 passed.
 
 ---
 
