@@ -11,27 +11,52 @@ from pathlib import Path
 from typing import Callable
 
 from backend.core.base_agent import PromptLoader
+from backend.llm.anthropic_agent_client import AnthropicAgentClient
 from backend.llm.gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
 
-# 모든 에이전트에 부착되는 안전 폴백. 503/429/빈 응답 시 강등.
+# 모든 Gemini 에이전트에 부착되는 안전 폴백. 503/429/빈 응답 시 강등.
 _FALLBACK_MODEL = "gemini-2.5-flash-lite"
+
+# Provider 추론 — alias prefix 기준.
+# gemini_* → Gemini, anthropic_* → Anthropic. 외 prefix 는 Gemini 안전 폴백 + warning.
+# Commit 2 에서 yaml writer/editor 가 anthropic_* alias 받으면 본 분기로 라우팅.
+GeminiOrAnthropicClient = GeminiClient | AnthropicAgentClient
 
 
 def _build_client_for_alias(
     alias: str,
     model_aliases: dict[str, str],
-) -> GeminiClient:
-    """yaml ``models.<alias>`` → ``GeminiClient`` 인스턴스.
+) -> GeminiOrAnthropicClient:
+    """yaml ``models.<alias>`` → provider 별 LLM client 인스턴스.
+
+    Provider 분기 (alias prefix 기준):
+        - ``anthropic_*`` → ``AnthropicAgentClient``
+        - 그 외 (``gemini_*`` 포함) → ``GeminiClient``
 
     우선순위:
-        1) env ``AIDEN_GEMINI_MODELS`` (콤마 구분) — 디버그 override. 설정되면 모든
-           에이전트가 동일 chain 사용 (운영 일괄 강등용).
-        2) yaml ``models.<alias>`` 의 model_id + ``_FALLBACK_MODEL`` 폴백.
+        1) env ``AIDEN_GEMINI_MODELS`` (콤마 구분) — Gemini 디버그 override 만 적용.
+           Anthropic alias 에는 영향 없음 (운영 일괄 강등 시도 시 anthropic 은 yaml 기준).
+        2) yaml ``models.<alias>`` 의 model_id + provider 별 안전 폴백.
 
     별칭 매핑이 없으면 ``gemini-2.5-flash`` 안전 폴백 + warning.
     """
+    is_anthropic = alias.startswith("anthropic")
+
+    # Anthropic 경로 — env AIDEN_GEMINI_MODELS override 대상 아님.
+    if is_anthropic:
+        primary = model_aliases.get(alias)
+        if not primary:
+            logger.warning(
+                "config/agents.yaml models.%s 매핑 없음 → gemini-2.5-flash 안전 폴백 (provider 강등)",
+                alias,
+            )
+            # 정의 누락 시 Gemini 안전 폴백 — anthropic 강제는 회피 (운영 차단 방지).
+            return GeminiClient(models=["gemini-2.5-flash", _FALLBACK_MODEL])
+        return AnthropicAgentClient(model=primary)
+
+    # Gemini 경로 — 기존 동작 유지.
     env_chain_raw = os.environ.get("AIDEN_GEMINI_MODELS", "").strip()
     if env_chain_raw:
         chain = [m.strip() for m in env_chain_raw.split(",") if m.strip()]
@@ -52,7 +77,7 @@ def _build_client_for_alias(
 
 def make_agent_callable(
     prompt_filename: str,
-    llm_client: GeminiClient,
+    llm_client: GeminiOrAnthropicClient,
     use_grounding: bool = False,
     prompt_loader: PromptLoader | None = None,
     dynamic_vars_fn: Callable[[], dict[str, str]] | None = None,
@@ -197,6 +222,19 @@ def _build_agents(
             use_grounding = bool(spec["grounding"])
         else:
             use_grounding = default_grounding
+
+        # B4-S2 (Writer/Editor Claude) Commit 1: grounding 에이전트 가드.
+        # google_search 의존 에이전트(scout=01, fact_checker=05)에 anthropic_* alias 가
+        # 매핑되면 Anthropic 은 grounding 미지원이라 호출은 가능하나 검색 결과 0 → 잘못된
+        # 콘텐츠 생성 위험. 강제로 gemini_flash 로 강등 + warning 으로 운영 점검 유도.
+        if use_grounding and alias.startswith("anthropic"):
+            logger.warning(
+                "grounding 의존 agent=%s 에 anthropic alias=%s 매핑 감지 → gemini_flash 로 강등 "
+                "(google_search 미지원). config/agents.yaml 매핑 점검 필요.",
+                short_key, alias,
+            )
+            alias = "gemini_flash"
+
         client = _build_client_for_alias(alias, model_aliases)
         result[short_key] = make_agent_callable(
             prompt_filename,
